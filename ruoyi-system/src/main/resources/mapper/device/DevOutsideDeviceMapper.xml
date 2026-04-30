@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.device.mapper.DevOutsideDeviceMapper">
+
+    <resultMap type="com.ruoyi.device.domain.DevOutsideDevice" id="OutsideResult">
+        <id     property="id"                   column="id"/>
+        <result property="reason"               column="reason"/>
+        <result property="quantity"             column="quantity"/>
+        <result property="inoutRecordId"        column="inout_record_id"/>
+        <result property="warehouseCategoryId"  column="warehouse_category_id"/>
+        <result property="note"                 column="note"/>
+        <result property="outDate"              column="out_date"/>
+        <result property="expectedReturnDate"   column="expected_return_date"/>
+        <result property="actualReturnDate"     column="actual_return_date"/>
+        <result property="delFlag"              column="del_flag"/>
+        <result property="createBy"             column="create_by"/>
+        <result property="createTime"           column="create_time"/>
+        <result property="updateBy"             column="update_by"/>
+        <result property="updateTime"           column="update_time"/>
+    </resultMap>
+
+    <select id="selectOutsideList" resultMap="OutsideResult">
+        SELECT * FROM dev_outside_device
+        <where>
+            del_flag = '0'
+            <if test="reason != null and reason != ''">
+                AND reason LIKE CONCAT('%', #{reason}, '%')
+            </if>
+        </where>
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectOutsideById" resultMap="OutsideResult">
+        SELECT * FROM dev_outside_device WHERE id = #{id} AND del_flag = '0'
+    </select>
+
+    <select id="selectByInoutRecordId" resultMap="OutsideResult">
+        SELECT * FROM dev_outside_device
+        WHERE inout_record_id = #{inoutRecordId} AND del_flag = '0'
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="sumUnreturnedQuantity" resultType="int">
+        SELECT COALESCE(SUM(quantity), 0) FROM dev_outside_device WHERE actual_return_date IS NULL AND del_flag = '0'
+    </select>
+
+    <insert id="insertOutside" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dev_outside_device (reason, quantity, note, out_date, expected_return_date,
+            actual_return_date, del_flag, create_by, create_time, update_by, update_time)
+        VALUES (#{reason}, #{quantity}, #{note}, #{outDate}, #{expectedReturnDate},
+            #{actualReturnDate}, '0', #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+    </insert>
+
+    <update id="updateOutside">
+        UPDATE dev_outside_device
+        <set>
+            <if test="reason != null">reason = #{reason},</if>
+            <if test="quantity != null">quantity = #{quantity},</if>
+            <if test="note != null">note = #{note},</if>
+            <if test="outDate != null">out_date = #{outDate},</if>
+            <if test="expectedReturnDate != null">expected_return_date = #{expectedReturnDate},</if>
+            <if test="actualReturnDate != null">actual_return_date = #{actualReturnDate},</if>
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteOutsideById">
+        UPDATE dev_outside_device SET del_flag = '2' WHERE id = #{id}
+    </update>
+
+    <!-- 出库→在外：自动创建在外设备记录，关联进出库记录ID -->
+    <insert id="insertOutsideDevice" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dev_outside_device (reason, quantity, warehouse_category_id, inout_record_id, note, out_date, expected_return_date,
+            actual_return_date, del_flag, create_by, create_time, update_by, update_time)
+        VALUES (#{reason}, #{quantity}, #{warehouseCategoryId}, #{inoutRecordId}, #{note}, #{outDate}, #{expectedReturnDate},
+            NULL, '0', #{createBy}, #{createTime}, #{createBy}, #{createTime})
+    </insert>
+
+    <!-- 入库←在外：按 inout_record_id 精确关闭对应在外设备记录 -->
+    <update id="closeOutsideDevices">
+        UPDATE dev_outside_device
+        SET actual_return_date = #{actualReturnDate},
+            warehouse_category_id = COALESCE(warehouse_category_id, #{warehouseCategoryId}),
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE inout_record_id = #{inoutRecordId} AND actual_return_date IS NULL AND del_flag = '0'
+    </update>
+
+    <!-- 删除出库/入库记录时回滚：重新打开对应的在外设备（置空 actual_return_date） -->
+    <update id="reopenOutsideDevices">
+        UPDATE dev_outside_device
+        SET actual_return_date = NULL,
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE inout_record_id = #{inoutRecordId} AND del_flag = '0'
+    </update>
+
+</mapper>

@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.device.mapper.DevWarehouseMapper">
+
+    <resultMap type="com.ruoyi.device.domain.DevWarehouseCategory" id="CategoryResult">
+        <id     property="id"          column="id"/>
+        <result property="name"        column="name"/>
+        <result property="type"        column="type"/>
+        <result property="color"       column="color"/>
+        <result property="sort"        column="sort"/>
+        <result property="delFlag"     column="del_flag"/>
+        <result property="createBy"    column="create_by"/>
+        <result property="createTime"  column="create_time"/>
+        <result property="updateBy"    column="update_by"/>
+        <result property="updateTime"  column="update_time"/>
+        <result property="quantity"    column="quantity"/>
+    </resultMap>
+
+    <resultMap type="com.ruoyi.device.domain.DevWarehouseStock" id="StockResult">
+        <id     property="id"           column="id"/>
+        <result property="categoryId"   column="category_id"/>
+        <result property="quantity"     column="quantity"/>
+        <result property="subType"      column="sub_type"/>
+        <result property="note"         column="note"/>
+        <result property="updateBy"     column="update_by"/>
+        <result property="updateTime"   column="update_time"/>
+        <result property="categoryName" column="category_name"/>
+        <result property="categoryColor" column="category_color"/>
+        <result property="categoryType" column="category_type"/>
+    </resultMap>
+
+    <!-- 库房分类 -->
+    <select id="selectCategoryList" resultMap="CategoryResult">
+        SELECT c.*, COALESCE(s.quantity, 0) AS quantity
+        FROM dev_warehouse_category c
+        LEFT JOIN dev_warehouse_stock s ON s.category_id = c.id
+        WHERE c.del_flag = '0'
+        ORDER BY c.sort ASC, c.id ASC
+    </select>
+
+    <select id="selectCategoryById" resultMap="CategoryResult">
+        SELECT c.*, COALESCE(s.quantity, 0) AS quantity
+        FROM dev_warehouse_category c
+        LEFT JOIN dev_warehouse_stock s ON s.category_id = c.id
+        WHERE c.id = #{id} AND c.del_flag = '0'
+    </select>
+
+    <insert id="insertCategory" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dev_warehouse_category (name, type, color, sort, del_flag, create_by, create_time)
+        VALUES (#{name}, #{type}, #{color}, #{sort}, '0', #{createBy}, #{createTime})
+    </insert>
+
+    <update id="updateCategory">
+        UPDATE dev_warehouse_category
+        SET name = #{name}, type = #{type}, color = #{color}, sort = #{sort},
+            update_by = #{updateBy}, update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteCategoryById">
+        UPDATE dev_warehouse_category SET del_flag = '2' WHERE id = #{id}
+    </update>
+
+    <!-- 库房库存 -->
+    <select id="selectStockList" resultMap="StockResult">
+        SELECT s.*, c.name AS category_name, c.color AS category_color, c.type AS category_type
+        FROM dev_warehouse_stock s
+        JOIN dev_warehouse_category c ON c.id = s.category_id AND c.del_flag = '0'
+        ORDER BY c.sort ASC
+    </select>
+
+    <select id="selectStockByCategoryId" resultMap="StockResult">
+        SELECT s.*, c.name AS category_name, c.color AS category_color, c.type AS category_type
+        FROM dev_warehouse_stock s
+        JOIN dev_warehouse_category c ON c.id = s.category_id
+        WHERE s.category_id = #{categoryId}
+    </select>
+
+    <select id="sumStock" resultType="int">
+        SELECT COALESCE(SUM(s.quantity), 0)
+        FROM dev_warehouse_stock s
+        JOIN dev_warehouse_category c ON c.id = s.category_id AND c.del_flag = '0'
+    </select>
+
+    <insert id="insertStock" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dev_warehouse_stock (category_id, quantity, sub_type, note, update_by, update_time)
+        VALUES (#{categoryId}, #{quantity}, #{subType}, #{note}, #{updateBy}, #{updateTime})
+    </insert>
+
+    <update id="updateStock">
+        UPDATE dev_warehouse_stock
+        SET quantity = #{quantity},
+            sub_type = #{subType},
+            note = #{note},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE category_id = #{categoryId}
+    </update>
+
+    <update id="updateQuantity">
+        UPDATE dev_warehouse_stock
+        SET quantity = GREATEST(quantity + #{delta}, 0)
+        WHERE category_id = #{categoryId}
+    </update>
+
+</mapper>

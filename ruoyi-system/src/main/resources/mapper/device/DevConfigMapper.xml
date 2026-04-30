@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.device.mapper.DevConfigMapper">
+
+    <select id="selectValueByKey" resultType="String">
+        SELECT cfg_value FROM dev_config WHERE cfg_key = #{key}
+    </select>
+
+    <insert id="upsertConfig">
+        INSERT INTO dev_config (cfg_key, cfg_value) VALUES (#{key}, #{value})
+        ON DUPLICATE KEY UPDATE cfg_value = #{value}
+    </insert>
+
+</mapper>

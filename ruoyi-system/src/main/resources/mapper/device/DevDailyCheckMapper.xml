@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.device.mapper.DevDailyCheckMapper">
+
+    <resultMap type="com.ruoyi.device.domain.DevDailyCheck" id="CheckResult">
+        <id     property="id"           column="id"/>
+        <result property="checkDate"    column="check_date"/>
+        <result property="employeeId"   column="employee_id"/>
+        <result property="status"       column="status"/>
+        <result property="checkedAt"    column="checked_at"/>
+        <result property="note"         column="note"/>
+        <result property="createBy"     column="create_by"/>
+        <result property="createTime"   column="create_time"/>
+        <result property="updateBy"     column="update_by"/>
+        <result property="updateTime"   column="update_time"/>
+        <result property="employeeName" column="employee_name"/>
+        <result property="department"   column="department"/>
+    </resultMap>
+
+    <sql id="selectJoin">
+        SELECT c.*, e.name AS employee_name, e.department
+        FROM dev_daily_check c
+        LEFT JOIN dev_employee e ON e.id = c.employee_id
+    </sql>
+
+    <select id="selectCheckByDate" resultMap="CheckResult">
+        <include refid="selectJoin"/>
+        WHERE c.check_date = #{checkDate}
+        ORDER BY e.sort ASC
+    </select>
+
+    <select id="selectCheckById" resultMap="CheckResult">
+        <include refid="selectJoin"/>
+        WHERE c.id = #{id}
+    </select>
+
+    <select id="selectCheckByDateAndEmployee" resultMap="CheckResult">
+        <include refid="selectJoin"/>
+        WHERE c.check_date = #{checkDate} AND c.employee_id = #{employeeId}
+    </select>
+
+    <insert id="insertCheck" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dev_daily_check (check_date, employee_id, status, checked_at, note,
+            create_by, create_time, update_by, update_time)
+        VALUES (#{checkDate}, #{employeeId}, #{status}, #{checkedAt}, #{note},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+        ON DUPLICATE KEY UPDATE
+            status = #{status},
+            checked_at = #{checkedAt},
+            note = #{note},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+    </insert>
+
+    <update id="updateCheck">
+        UPDATE dev_daily_check
+        SET status = #{status},
+            checked_at = #{checkedAt},
+            note = #{note},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteCheckById">
+        DELETE FROM dev_daily_check WHERE id = #{id}
+    </delete>
+
+</mapper>

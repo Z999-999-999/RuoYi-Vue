@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.device.mapper.DevInoutRecordMapper">
+
+    <resultMap type="com.ruoyi.device.domain.DevInoutRecord" id="RecordResult">
+        <id     property="id"                   column="id"/>
+        <result property="recordTime"           column="record_time"/>
+        <result property="type"                 column="type"/>
+        <result property="quantity"             column="quantity"/>
+        <result property="inoutCategoryId"      column="inout_category_id"/>
+        <result property="warehouseCategoryId"  column="warehouse_category_id"/>
+        <result property="receiverType"         column="receiver_type"/>
+        <result property="receiverEmployeeId"   column="receiver_employee_id"/>
+        <result property="receiverOutsideNote"  column="receiver_outside_note"/>
+        <result property="senderType"           column="sender_type"/>
+        <result property="senderEmployeeId"     column="sender_employee_id"/>
+        <result property="note"                 column="note"/>
+        <result property="delFlag"              column="del_flag"/>
+        <result property="createBy"             column="create_by"/>
+        <result property="createTime"           column="create_time"/>
+        <result property="inoutCategoryName"    column="inout_category_name"/>
+        <result property="warehouseCategoryName" column="warehouse_category_name"/>
+        <result property="receiverEmployeeName" column="receiver_employee_name"/>
+        <result property="senderEmployeeName"   column="sender_employee_name"/>
+    </resultMap>
+
+    <sql id="selectJoin">
+        SELECT r.*,
+            ic.name AS inout_category_name,
+            wc.name AS warehouse_category_name,
+            re.name AS receiver_employee_name,
+            se.name AS sender_employee_name
+        FROM dev_inout_record r
+        LEFT JOIN dev_inout_category ic ON ic.id = r.inout_category_id
+        LEFT JOIN dev_warehouse_category wc ON wc.id = r.warehouse_category_id
+        LEFT JOIN dev_employee re ON re.id = r.receiver_employee_id
+        LEFT JOIN dev_employee se ON se.id = r.sender_employee_id
+    </sql>
+
+    <select id="selectRecordList" resultMap="RecordResult">
+        <include refid="selectJoin"/>
+        <where>
+            r.del_flag = '0'
+            <if test="type != null and type != ''">AND r.type = #{type}</if>
+            <if test="inoutCategoryId != null">AND r.inout_category_id = #{inoutCategoryId}</if>
+            <if test="warehouseCategoryId != null">AND r.warehouse_category_id = #{warehouseCategoryId}</if>
+            <if test="startDate != null and startDate != ''">AND DATE(r.record_time) &gt;= #{startDate}</if>
+            <if test="endDate != null and endDate != ''">AND DATE(r.record_time) &lt;= #{endDate}</if>
+        </where>
+        ORDER BY r.record_time DESC, r.id DESC
+    </select>
+
+    <select id="selectRecordById" resultMap="RecordResult">
+        <include refid="selectJoin"/>
+        WHERE r.del_flag = '0' AND r.id = #{id}
+    </select>
+
+    <select id="selectRecordsByEmployee" resultMap="RecordResult">
+        <include refid="selectJoin"/>
+        WHERE r.del_flag = '0' AND (r.receiver_employee_id = #{employeeId} OR r.sender_employee_id = #{employeeId})
+        <if test="startDate != null and startDate != ''">AND DATE(r.record_time) &gt;= #{startDate}</if>
+        <if test="endDate != null and endDate != ''">AND DATE(r.record_time) &lt;= #{endDate}</if>
+        ORDER BY r.record_time DESC
+        <if test="limit != null">LIMIT #{limit}</if>
+    </select>
+
+    <select id="selectTodayStats" resultType="java.util.HashMap">
+        SELECT
+            COALESCE(SUM(CASE WHEN type='out' THEN quantity ELSE 0 END), 0) AS outQty,
+            COALESCE(SUM(CASE WHEN type='in' THEN quantity ELSE 0 END), 0) AS inQty,
+            COUNT(*) AS recordCount
+        FROM dev_inout_record
+        WHERE DATE(record_time) = CURDATE() AND del_flag = '0'
+    </select>
+
+    <select id="selectMonthlyOutRank" resultType="java.util.HashMap">
+        SELECT re.id AS employeeId, re.name AS employeeName, re.department,
+            COALESCE(SUM(r.quantity), 0) AS totalQty,
+            COALESCE(SUM(CASE WHEN r.receiver_type = 'employee' THEN r.quantity ELSE 0 END), 0) AS toEmployeeQty,
+            COALESCE(SUM(CASE WHEN r.receiver_type = 'outside' THEN r.quantity ELSE 0 END), 0) AS toOutsideQty
+        FROM dev_inout_record r
+        INNER JOIN dev_employee re ON re.id = r.receiver_employee_id
+        WHERE r.type = 'out' AND r.receiver_type = 'employee'
+            AND r.del_flag = '0'
+            AND DATE_FORMAT(r.record_time, '%Y-%m') = #{yearMonth}
+            <if test="inoutCategoryId != null">AND r.inout_category_id = #{inoutCategoryId}</if>
+        GROUP BY re.id, re.name, re.department
+        ORDER BY totalQty DESC
+        LIMIT 20
+    </select>
+
+    <select id="selectMonthlyInRank" resultType="java.util.HashMap">
+        SELECT se.id AS employeeId, se.name AS employeeName, se.department,
+            COALESCE(SUM(r.quantity), 0) AS totalQty
+        FROM dev_inout_record r
+        INNER JOIN dev_employee se ON se.id = r.sender_employee_id
+        WHERE r.type = 'in' AND r.sender_type = 'employee'
+            AND r.del_flag = '0'
+            AND DATE_FORMAT(r.record_time, '%Y-%m') = #{yearMonth}
+            <if test="inoutCategoryId != null">AND r.inout_category_id = #{inoutCategoryId}</if>
+        GROUP BY se.id, se.name, se.department
+        ORDER BY totalQty DESC
+        LIMIT 20
+    </select>
+
+    <insert id="insertRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dev_inout_record (record_time, type, quantity, inout_category_id, warehouse_category_id,
+            receiver_type, receiver_employee_id, receiver_outside_note,
+            sender_type, sender_employee_id, note, del_flag, create_by, create_time)
+        VALUES (#{recordTime}, #{type}, #{quantity}, #{inoutCategoryId}, #{warehouseCategoryId},
+            #{receiverType}, #{receiverEmployeeId}, #{receiverOutsideNote},
+            #{senderType}, #{senderEmployeeId}, #{note}, '0', #{createBy}, #{createTime})
+    </insert>
+
+    <update id="deleteRecordById">
+        UPDATE dev_inout_record SET del_flag = '2' WHERE id = #{id}
+    </update>
+
+    <select id="countByInoutCategoryId" resultType="int">
+        SELECT COUNT(*) FROM dev_inout_record WHERE inout_category_id = #{inoutCategoryId}
+    </select>
+
+    <select id="countByWarehouseCategoryId" resultType="int">
+        SELECT COUNT(*) FROM dev_inout_record WHERE warehouse_category_id = #{warehouseCategoryId}
+    </select>
+
+</mapper>

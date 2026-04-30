@@ -45,3 +45,14 @@ nbdist/
 !*/build/*.java
 !*/build/*.html
 !*/build/*.xml
+
+######################################################################
+# Project temp files
+.playwright-cli/
+.workbuddy/
+build_output.txt
+java_ver.txt
+node-v18/
+node-v18.zip
+nul
+scripts/

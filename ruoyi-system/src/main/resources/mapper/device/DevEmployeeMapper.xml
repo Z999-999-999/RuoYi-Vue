@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.device.mapper.DevEmployeeMapper">
+
+    <resultMap type="com.ruoyi.device.domain.DevEmployee" id="EmployeeResult">
+        <id     property="id"          column="id"/>
+        <result property="name"        column="name"/>
+        <result property="department"  column="department"/>
+        <result property="phoneTotal"  column="phone_total"/>
+        <result property="sort"        column="sort"/>
+        <result property="delFlag"     column="del_flag"/>
+        <result property="createBy"    column="create_by"/>
+        <result property="createTime"  column="create_time"/>
+        <result property="updateBy"    column="update_by"/>
+        <result property="updateTime"  column="update_time"/>
+        <result property="remark"      column="remark"/>
+    </resultMap>
+
+    <sql id="selectBase">
+        SELECT id, name, department, phone_total, sort, del_flag,
+               create_by, create_time, update_by, update_time, remark
+        FROM dev_employee
+        WHERE del_flag = '0'
+    </sql>
+
+    <select id="selectEmployeeList" resultMap="EmployeeResult">
+        <include refid="selectBase"/>
+        <if test="name != null and name != ''">
+            AND name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="department != null and department != ''">
+            AND department = #{department}
+        </if>
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <select id="selectEmployeeById" resultMap="EmployeeResult">
+        <include refid="selectBase"/>
+        AND id = #{id}
+    </select>
+
+    <select id="sumPhoneTotal" resultType="int">
+        SELECT COALESCE(SUM(phone_total), 0) FROM dev_employee WHERE del_flag = '0'
+    </select>
+
+    <insert id="insertEmployee" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dev_employee (name, department, phone_total, sort, del_flag,
+            create_by, create_time, update_by, update_time, remark)
+        VALUES (#{name}, #{department}, #{phoneTotal}, #{sort}, '0',
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime}, #{remark})
+    </insert>
+
+    <update id="updateEmployee">
+        UPDATE dev_employee
+        <set>
+            <if test="name != null and name != ''">name = #{name},</if>
+            <if test="department != null">department = #{department},</if>
+            <if test="phoneTotal != null">phone_total = #{phoneTotal},</if>
+            <if test="sort != null">sort = #{sort},</if>
+            <if test="updateBy != null">update_by = #{updateBy},</if>
+            update_time = #{updateTime}
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteEmployeeById">
+        UPDATE dev_employee SET del_flag = '2' WHERE id = #{id}
+    </update>
+
+    <select id="countDailyReportsByEmployeeId" resultType="int">
+        SELECT COUNT(*) FROM dev_daily_report WHERE employee_id = #{employeeId}
+    </select>
+
+    <select id="countDailyChecksByEmployeeId" resultType="int">
+        SELECT COUNT(*) FROM dev_daily_check WHERE employee_id = #{employeeId}
+    </select>
+
+    <update id="updatePhoneTotal">
+        UPDATE dev_employee SET phone_total = GREATEST(phone_total + #{delta}, 0) WHERE id = #{id}
+    </update>
+
+</mapper>

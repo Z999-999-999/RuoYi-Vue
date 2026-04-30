@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.device.mapper.DevDailyReportMapper">
+
+    <resultMap type="com.ruoyi.device.domain.DevDailyReport" id="ReportResult">
+        <id     property="id"            column="id"/>
+        <result property="reportDate"    column="report_date"/>
+        <result property="employeeId"    column="employee_id"/>
+        <result property="phoneCount"    column="phone_count"/>
+        <result property="platformStats" column="platform_stats"/>
+        <result property="createBy"      column="create_by"/>
+        <result property="createTime"    column="create_time"/>
+        <result property="updateBy"      column="update_by"/>
+        <result property="updateTime"    column="update_time"/>
+        <result property="employeeName"  column="employee_name"/>
+        <result property="department"    column="department"/>
+    </resultMap>
+
+    <sql id="selectJoin">
+        SELECT r.*, e.name AS employee_name, e.department
+        FROM dev_daily_report r
+        LEFT JOIN dev_employee e ON e.id = r.employee_id
+    </sql>
+
+    <select id="selectReportByDate" resultMap="ReportResult">
+        <include refid="selectJoin"/>
+        WHERE r.report_date = #{reportDate}
+        ORDER BY e.sort ASC
+    </select>
+
+    <select id="selectReportById" resultMap="ReportResult">
+        <include refid="selectJoin"/>
+        WHERE r.id = #{id}
+    </select>
+
+    <select id="selectReportByDateAndEmployee" resultMap="ReportResult">
+        <include refid="selectJoin"/>
+        WHERE r.report_date = #{reportDate} AND r.employee_id = #{employeeId}
+    </select>
+
+    <select id="selectRecentReports" resultMap="ReportResult">
+        <include refid="selectJoin"/>
+        WHERE r.employee_id = #{employeeId}
+        ORDER BY r.report_date DESC
+        <if test="limit != null">LIMIT #{limit}</if>
+    </select>
+
+    <insert id="insertReport" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dev_daily_report (report_date, employee_id, phone_count, platform_stats,
+            create_by, create_time, update_by, update_time)
+        VALUES (#{reportDate}, #{employeeId}, #{phoneCount}, #{platformStats},
+            #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+        ON DUPLICATE KEY UPDATE
+            phone_count = #{phoneCount},
+            platform_stats = #{platformStats},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+    </insert>
+
+    <update id="updateReport">
+        UPDATE dev_daily_report
+        SET phone_count = #{phoneCount},
+            platform_stats = #{platformStats},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteReportById">
+        DELETE FROM dev_daily_report WHERE id = #{id}
+    </delete>
+
+    <select id="selectLatestPlatformStatsByEmployee" resultType="java.util.Map">
+        SELECT d.employee_id as employeeId, d.platform_stats as platformStats
+        FROM dev_daily_report d
+        WHERE d.report_date = (
+            SELECT MAX(d2.report_date)
+            FROM dev_daily_report d2
+            WHERE d2.employee_id = d.employee_id
+        )
+    </select>
+
+</mapper>

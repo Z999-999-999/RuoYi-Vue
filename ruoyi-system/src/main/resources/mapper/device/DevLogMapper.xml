@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.device.mapper.DevLogMapper">
+
+    <resultMap type="com.ruoyi.device.domain.DevLog" id="LogResult">
+        <id     property="id"       column="id"/>
+        <result property="logTime"  column="log_time"/>
+        <result property="level"    column="level"/>
+        <result property="module"   column="module"/>
+        <result property="message"  column="message"/>
+        <result property="detail"   column="detail"/>
+    </resultMap>
+
+    <select id="selectLogList" resultMap="LogResult">
+        SELECT * FROM dev_log
+        <where>
+            <if test="level != null and level != ''">AND level = #{level}</if>
+            <if test="module != null and module != ''">AND module = #{module}</if>
+            <if test="keyword != null and keyword != ''">
+                AND (message LIKE CONCAT('%', #{keyword}, '%') OR detail LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="startTime != null and startTime != ''">AND log_time &gt;= #{startTime}</if>
+            <if test="endTime != null and endTime != ''">AND log_time &lt;= #{endTime}</if>
+        </where>
+        ORDER BY log_time DESC, id DESC
+    </select>
+
+    <select id="countErrorLogs" resultType="int">
+        SELECT COUNT(*) FROM dev_log WHERE level = 'error'
+    </select>
+
+    <select id="selectDistinctModules" resultType="String">
+        SELECT DISTINCT module FROM dev_log ORDER BY module
+    </select>
+
+    <insert id="insertLog" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO dev_log (log_time, level, module, message, detail)
+        VALUES (#{logTime}, #{level}, #{module}, #{message}, #{detail})
+    </insert>
+
+    <delete id="clearLogs">
+        <choose>
+            <when test="scope == 'info'">
+                DELETE FROM dev_log WHERE level = 'info'
+            </when>
+            <when test="scope == 'warning'">
+                DELETE FROM dev_log WHERE level = 'warning'
+            </when>
+            <when test="scope == 'error'">
+                DELETE FROM dev_log WHERE level = 'error'
+            </when>
+            <when test="scope == 'all'">
+                DELETE FROM dev_log
+            </when>
+            <otherwise>
+                DELETE FROM dev_log WHERE 1=0
+            </otherwise>
+        </choose>
+    </delete>
+
+</mapper>
