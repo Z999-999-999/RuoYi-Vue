@@ -12,18 +12,18 @@
     <artifactId>ruoyi-quartz</artifactId>
 
     <description>
-        quartz瀹氭椂浠诲姟
+        quartz定时任务
     </description>
 
     <dependencies>
 
-        <!-- 瀹氭椂浠诲姟 -->
+        <!-- 定时任务 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-quartz</artifactId>
         </dependency>
 
-        <!-- 閫氱敤宸ュ叿-->
+        <!-- 通用工具-->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-common</artifactId>

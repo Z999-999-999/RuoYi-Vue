@@ -10,7 +10,7 @@
 
     <name>ruoyi</name>
     <url>http://www.ruoyi.vip</url>
-    <description>鑻ヤ緷绠＄悊绯荤粺</description>
+    <description>若依管理系统</description>
     
     <properties>
         <ruoyi.version>3.10.0</ruoyi.version>
@@ -33,11 +33,11 @@
         <springdoc.version>3.0.2</springdoc.version>
     </properties>
 
-    <!-- 渚濊禆澹版槑 -->
+    <!-- 依赖声明 -->
     <dependencyManagement>
         <dependencies>
 
-            <!-- SpringBoot鐨勪緷璧栭厤缃?->
+            <!-- SpringBoot的依赖配置-->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -46,21 +46,21 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- 闃块噷鏁版嵁搴撹繛鎺ユ睜 -->
+            <!-- 阿里数据库连接池 -->
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>druid-spring-boot-4-starter</artifactId>
                 <version>${druid.version}</version>
             </dependency>
 
-            <!-- 瑙ｆ瀽瀹㈡埛绔搷浣滅郴缁熴€佹祻瑙堝櫒绛?-->
+            <!-- 解析客户端操作系统、浏览器等 -->
             <dependency>
                 <groupId>nl.basjes.parse.useragent</groupId>
                 <artifactId>yauaa</artifactId>
                 <version>${yauaa.version}</version>
             </dependency>
 
-            <!-- pagehelper 鍒嗛〉鎻掍欢 -->
+            <!-- pagehelper 分页插件 -->
             <dependency>
                 <groupId>com.github.pagehelper</groupId>
                 <artifactId>pagehelper-spring-boot-starter</artifactId>
@@ -79,7 +79,7 @@
                 <version>${jaxb-api.version}</version>
             </dependency>
 
-            <!-- 鑾峰彇绯荤粺淇℃伅 -->
+            <!-- 获取系统信息 -->
             <dependency>
                 <groupId>com.github.oshi</groupId>
                 <artifactId>oshi-core</artifactId>
@@ -93,77 +93,77 @@
                 <version>${springdoc.version}</version>
             </dependency>
 
-            <!-- io甯哥敤宸ュ叿绫?-->
+            <!-- io常用工具类 -->
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons.io.version}</version>
             </dependency>
 
-            <!-- excel宸ュ叿 -->
+            <!-- excel工具 -->
             <dependency>
                 <groupId>org.apache.poi</groupId>
                 <artifactId>poi-ooxml</artifactId>
                 <version>${poi.version}</version>
             </dependency>
 
-            <!-- velocity浠ｇ爜鐢熸垚浣跨敤妯℃澘 -->
+            <!-- velocity代码生成使用模板 -->
             <dependency>
                 <groupId>org.apache.velocity</groupId>
                 <artifactId>velocity-engine-core</artifactId>
                 <version>${velocity.version}</version>
             </dependency>
 
-            <!-- 闃块噷JSON瑙ｆ瀽鍣?-->
+            <!-- 阿里JSON解析器 -->
             <dependency>
                 <groupId>com.alibaba.fastjson2</groupId>
                 <artifactId>fastjson2</artifactId>
                 <version>${fastjson.version}</version>
             </dependency>
 
-            <!-- Token鐢熸垚涓庤В鏋?->
+            <!-- Token生成与解析-->
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt</artifactId>
                 <version>${jwt.version}</version>
             </dependency>
 
-            <!-- 楠岃瘉鐮?-->
+            <!-- 验证码 -->
             <dependency>
                 <groupId>pro.fessional</groupId>
                 <artifactId>kaptcha</artifactId>
                 <version>${kaptcha.version}</version>
             </dependency>
 
-            <!-- 瀹氭椂浠诲姟-->
+            <!-- 定时任务-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-quartz</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
-            <!-- 浠ｇ爜鐢熸垚-->
+            <!-- 代码生成-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-generator</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
-            <!-- 鏍稿績妯″潡-->
+            <!-- 核心模块-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-framework</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
-            <!-- 绯荤粺妯″潡-->
+            <!-- 系统模块-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-system</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
-            <!-- 閫氱敤宸ュ叿-->
+            <!-- 通用工具-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common</artifactId>

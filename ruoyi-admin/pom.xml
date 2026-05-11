@@ -12,7 +12,7 @@
     <artifactId>ruoyi-admin</artifactId>
 
     <description>
-        web鏈嶅姟鍏ュ彛
+        web服务入口
     </description>
 
     <dependencies>
@@ -21,7 +21,7 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-devtools</artifactId>
-            <optional>true</optional> <!-- 琛ㄧず渚濊禆涓嶄細浼犻€?-->
+            <optional>true</optional> <!-- 表示依赖不会传递 -->
         </dependency>
 
         <!-- spring-doc -->
@@ -30,25 +30,25 @@
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
-         <!-- Mysql椹卞姩鍖?-->
+         <!-- Mysql驱动包 -->
         <dependency>
             <groupId>com.mysql</groupId>
             <artifactId>mysql-connector-j</artifactId>
         </dependency>
 
-        <!-- 鏍稿績妯″潡-->
+        <!-- 核心模块-->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-framework</artifactId>
         </dependency>
 
-        <!-- 瀹氭椂浠诲姟-->
+        <!-- 定时任务-->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-quartz</artifactId>
         </dependency>
 
-        <!-- 浠ｇ爜鐢熸垚-->
+        <!-- 代码生成-->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-generator</artifactId>
