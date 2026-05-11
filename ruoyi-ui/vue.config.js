@@ -42,6 +42,11 @@ module.exports = {
           ['^' + process.env.VUE_APP_BASE_API]: ''
         }
       },
+      // Reporting API proxy (for Bitable module)
+      '^/api/': {
+        target: baseUrl,
+        changeOrigin: true
+      },
       // springdoc proxy
       '^/v3/api-docs/(.*)': {
         target: baseUrl,

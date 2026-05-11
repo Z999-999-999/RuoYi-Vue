@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -6,14 +6,14 @@
 	
     <groupId>com.ruoyi</groupId>
     <artifactId>ruoyi</artifactId>
-    <version>3.9.2</version>
+    <version>3.10.0</version>
 
     <name>ruoyi</name>
     <url>http://www.ruoyi.vip</url>
-    <description>若依管理系统</description>
+    <description>鑻ヤ緷绠＄悊绯荤粺</description>
     
     <properties>
-        <ruoyi.version>3.9.2</ruoyi.version>
+        <ruoyi.version>3.10.0</ruoyi.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>17</java.version>
@@ -33,11 +33,11 @@
         <springdoc.version>3.0.2</springdoc.version>
     </properties>
 
-    <!-- 依赖声明 -->
+    <!-- 渚濊禆澹版槑 -->
     <dependencyManagement>
         <dependencies>
 
-            <!-- SpringBoot的依赖配置-->
+            <!-- SpringBoot鐨勪緷璧栭厤缃?->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-dependencies</artifactId>
@@ -46,21 +46,21 @@
                 <scope>import</scope>
             </dependency>
 
-            <!-- 阿里数据库连接池 -->
+            <!-- 闃块噷鏁版嵁搴撹繛鎺ユ睜 -->
             <dependency>
                 <groupId>com.alibaba</groupId>
                 <artifactId>druid-spring-boot-4-starter</artifactId>
                 <version>${druid.version}</version>
             </dependency>
 
-            <!-- 解析客户端操作系统、浏览器等 -->
+            <!-- 瑙ｆ瀽瀹㈡埛绔搷浣滅郴缁熴€佹祻瑙堝櫒绛?-->
             <dependency>
                 <groupId>nl.basjes.parse.useragent</groupId>
                 <artifactId>yauaa</artifactId>
                 <version>${yauaa.version}</version>
             </dependency>
 
-            <!-- pagehelper 分页插件 -->
+            <!-- pagehelper 鍒嗛〉鎻掍欢 -->
             <dependency>
                 <groupId>com.github.pagehelper</groupId>
                 <artifactId>pagehelper-spring-boot-starter</artifactId>
@@ -79,7 +79,7 @@
                 <version>${jaxb-api.version}</version>
             </dependency>
 
-            <!-- 获取系统信息 -->
+            <!-- 鑾峰彇绯荤粺淇℃伅 -->
             <dependency>
                 <groupId>com.github.oshi</groupId>
                 <artifactId>oshi-core</artifactId>
@@ -93,77 +93,77 @@
                 <version>${springdoc.version}</version>
             </dependency>
 
-            <!-- io常用工具类 -->
+            <!-- io甯哥敤宸ュ叿绫?-->
             <dependency>
                 <groupId>commons-io</groupId>
                 <artifactId>commons-io</artifactId>
                 <version>${commons.io.version}</version>
             </dependency>
 
-            <!-- excel工具 -->
+            <!-- excel宸ュ叿 -->
             <dependency>
                 <groupId>org.apache.poi</groupId>
                 <artifactId>poi-ooxml</artifactId>
                 <version>${poi.version}</version>
             </dependency>
 
-            <!-- velocity代码生成使用模板 -->
+            <!-- velocity浠ｇ爜鐢熸垚浣跨敤妯℃澘 -->
             <dependency>
                 <groupId>org.apache.velocity</groupId>
                 <artifactId>velocity-engine-core</artifactId>
                 <version>${velocity.version}</version>
             </dependency>
 
-            <!-- 阿里JSON解析器 -->
+            <!-- 闃块噷JSON瑙ｆ瀽鍣?-->
             <dependency>
                 <groupId>com.alibaba.fastjson2</groupId>
                 <artifactId>fastjson2</artifactId>
                 <version>${fastjson.version}</version>
             </dependency>
 
-            <!-- Token生成与解析-->
+            <!-- Token鐢熸垚涓庤В鏋?->
             <dependency>
                 <groupId>io.jsonwebtoken</groupId>
                 <artifactId>jjwt</artifactId>
                 <version>${jwt.version}</version>
             </dependency>
 
-            <!-- 验证码 -->
+            <!-- 楠岃瘉鐮?-->
             <dependency>
                 <groupId>pro.fessional</groupId>
                 <artifactId>kaptcha</artifactId>
                 <version>${kaptcha.version}</version>
             </dependency>
 
-            <!-- 定时任务-->
+            <!-- 瀹氭椂浠诲姟-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-quartz</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
-            <!-- 代码生成-->
+            <!-- 浠ｇ爜鐢熸垚-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-generator</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
-            <!-- 核心模块-->
+            <!-- 鏍稿績妯″潡-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-framework</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
-            <!-- 系统模块-->
+            <!-- 绯荤粺妯″潡-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-system</artifactId>
                 <version>${ruoyi.version}</version>
             </dependency>
 
-            <!-- 通用工具-->
+            <!-- 閫氱敤宸ュ叿-->
             <dependency>
                 <groupId>com.ruoyi</groupId>
                 <artifactId>ruoyi-common</artifactId>

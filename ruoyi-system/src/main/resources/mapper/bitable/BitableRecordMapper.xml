@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.bitable.mapper.BitableRecordMapper">
+
+    <resultMap type="com.ruoyi.bitable.domain.BitableRecord" id="RecordResult">
+        <id     property="id"           column="id"/>
+        <result property="tablePk"      column="table_pk"/>
+        <result property="appToken"     column="app_token"/>
+        <result property="tableId"      column="table_id"/>
+        <result property="recordId"     column="record_id"/>
+        <result property="fieldsJson"   column="fields_json"/>
+        <result property="createdBy"    column="created_by"/>
+        <result property="createdTime"  column="created_time"/>
+        <result property="updatedBy"    column="updated_by"/>
+        <result property="updatedTime"  column="updated_time"/>
+    </resultMap>
+
+    <select id="selectRecordById" resultMap="RecordResult">
+        SELECT * FROM bitable_record WHERE id = #{id} AND del_flag = '0'
+    </select>
+
+    <select id="selectRecordByTokenTableRecordId" resultMap="RecordResult">
+        SELECT * FROM bitable_record
+        WHERE app_token = #{appToken} AND table_id = #{tableId} AND record_id = #{recordId} AND del_flag = '0'
+    </select>
+
+    <select id="selectRecordList" resultMap="RecordResult">
+        SELECT * FROM bitable_record
+        WHERE app_token = #{appToken} AND table_id = #{tableId} AND del_flag = '0'
+        <if test="keyword != null and keyword != ''">
+            AND fields_json LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="startDate != null and startDate != ''">
+            AND DATE(created_time) &gt;= #{startDate}
+        </if>
+        <if test="endDate != null and endDate != ''">
+            AND DATE(created_time) &lt;= #{endDate}
+        </if>
+        <!-- 多条件筛选: 遍历每个条件，支持 contains/notContains/equals/notEquals/gt/lt/startsWith/endsWith -->
+        <if test="filters != null and filters.size() &gt; 0">
+            <foreach collection="filters" item="cond" separator=" ">
+                <choose>
+                    <!-- 上报时间 __createdTime__ 映射到 JSON 中的 create_time，同时支持时间戳和字符串 -->
+                    <when test="cond.field == '__createdTime__'">
+                        <choose>
+                            <when test="cond.operator == 'isGreater' or cond.operator == 'gt'">
+                                AND IF(JSON_EXTRACT(fields_json, '$.create_time') REGEXP '^[0-9]{10,13}$', FROM_UNIXTIME(JSON_EXTRACT(fields_json, '$.create_time') / 1000), DATE(JSON_UNQUOTE(JSON_EXTRACT(fields_json, '$.create_time')))) &gt; DATE(#{cond.value})
+                            </when>
+                            <when test="cond.operator == 'isLess' or cond.operator == 'lt'">
+                                AND IF(JSON_EXTRACT(fields_json, '$.create_time') REGEXP '^[0-9]{10,13}$', FROM_UNIXTIME(JSON_EXTRACT(fields_json, '$.create_time') / 1000), DATE(JSON_UNQUOTE(JSON_EXTRACT(fields_json, '$.create_time')))) &lt; DATE(#{cond.value})
+                            </when>
+                            <when test="cond.operator == 'isEmpty'">
+                                AND (JSON_EXTRACT(fields_json, '$.create_time') IS NULL OR JSON_EXTRACT(fields_json, '$.create_time') = '')
+                            </when>
+                            <when test="cond.operator == 'isNotEmpty'">
+                                AND JSON_EXTRACT(fields_json, '$.create_time') IS NOT NULL AND JSON_EXTRACT(fields_json, '$.create_time') != ''
+                            </when>
+                            <otherwise>
+                                AND IF(JSON_EXTRACT(fields_json, '$.create_time') REGEXP '^[0-9]{10,13}$', FROM_UNIXTIME(JSON_EXTRACT(fields_json, '$.create_time') / 1000), DATE(JSON_UNQUOTE(JSON_EXTRACT(fields_json, '$.create_time')))) = DATE(#{cond.value})
+                            </otherwise>
+                        </choose>
+                    </when>
+                    <!-- 普通字段（JSON存储） -->
+                    <when test="cond.operator == 'contains'">
+                        AND fields_json LIKE CONCAT('%', #{cond.field}, '%', #{cond.value}, '%')
+                    </when>
+                    <when test="cond.operator == 'notContains'">
+                        AND (fields_json NOT LIKE CONCAT('%', #{cond.field}, '%', #{cond.value}, '%') OR fields_json IS NULL)
+                    </when>
+                    <when test="cond.operator == 'equals'">
+                        <choose>
+                            <when test="cond.field == 'create_time'">
+                                AND IF(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) REGEXP '^[0-9]{10,13}$', FROM_UNIXTIME(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) / 1000), DATE(JSON_UNQUOTE(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field}))))) = DATE(#{cond.value})
+                            </when>
+                            <otherwise>
+                                AND JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) = #{cond.value}
+                            </otherwise>
+                        </choose>
+                    </when>
+                    <when test="cond.operator == 'notEquals'">
+                        <choose>
+                            <when test="cond.field == 'create_time'">
+                                AND IF(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) REGEXP '^[0-9]{10,13}$', FROM_UNIXTIME(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) / 1000), DATE(JSON_UNQUOTE(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field}))))) != DATE(#{cond.value})
+                            </when>
+                            <otherwise>
+                                AND (JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) != #{cond.value} OR JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) IS NULL)
+                            </otherwise>
+                        </choose>
+                    </when>
+                    <when test="cond.operator == 'gt' or cond.operator == 'isGreater'">
+                        <choose>
+                            <when test="cond.field == 'create_time'">
+                                AND IF(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) REGEXP '^[0-9]{10,13}$', FROM_UNIXTIME(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) / 1000), DATE(JSON_UNQUOTE(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field}))))) &gt; DATE(#{cond.value})
+                            </when>
+                            <otherwise>
+                                AND JSON_UNQUOTE(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field}))) + 0 &gt; #{cond.value} + 0
+                            </otherwise>
+                        </choose>
+                    </when>
+                    <when test="cond.operator == 'lt' or cond.operator == 'isLess'">
+                        <choose>
+                            <when test="cond.field == 'create_time'">
+                                AND IF(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) REGEXP '^[0-9]{10,13}$', FROM_UNIXTIME(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) / 1000), DATE(JSON_UNQUOTE(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field}))))) &lt; DATE(#{cond.value})
+                            </when>
+                            <otherwise>
+                                AND JSON_UNQUOTE(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field}))) + 0 &lt; #{cond.value} + 0
+                            </otherwise>
+                        </choose>
+                    </when>
+                    <when test="cond.operator == 'startsWith'">
+                        AND JSON_UNQUOTE(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field}))) LIKE CONCAT(#{cond.value}, '%')
+                    </when>
+                    <when test="cond.operator == 'endsWith'">
+                        AND JSON_UNQUOTE(JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field}))) LIKE CONCAT('%', #{cond.value})
+                    </when>
+                    <when test="cond.operator == 'isEmpty'">
+                        AND (JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) IS NULL OR JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) = '' OR JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) = 'null')
+                    </when>
+                    <when test="cond.operator == 'isNotEmpty'">
+                        AND JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) IS NOT NULL AND JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) != '' AND JSON_EXTRACT(fields_json, CONCAT('$.', #{cond.field})) != 'null'
+                    </when>
+                </choose>
+            </foreach>
+        </if>
+        <choose>
+            <when test="sortField != null and sortField != '' and sortOrder != null and sortOrder != ''">
+                <if test="sortField == 'createdTime'">
+                    ORDER BY created_time ${sortOrder}
+                </if>
+                <if test="sortField != 'createdTime'">
+                    ORDER BY id DESC
+                </if>
+            </when>
+            <otherwise>
+                ORDER BY id DESC
+            </otherwise>
+        </choose>
+    </select>
+
+    <select id="countRecords" resultType="int">
+        SELECT COUNT(*) FROM bitable_record
+        WHERE app_token = #{appToken} AND table_id = #{tableId} AND del_flag = '0'
+    </select>
+
+    <insert id="insertRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO bitable_record (table_pk, app_token, table_id, record_id, fields_json, created_by, created_time)
+        VALUES (#{tablePk}, #{appToken}, #{tableId}, #{recordId}, #{fieldsJson}, #{createdBy}, #{createdTime})
+    </insert>
+
+    <insert id="insertRecords">
+        INSERT INTO bitable_record (table_pk, app_token, table_id, record_id, fields_json, created_by, created_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.tablePk}, #{item.appToken}, #{item.tableId}, #{item.recordId}, #{item.fieldsJson}, #{item.createdBy}, #{item.createdTime})
+        </foreach>
+    </insert>
+
+    <update id="updateRecord">
+        UPDATE bitable_record
+        SET fields_json = #{fieldsJson}, updated_by = #{updatedBy}, updated_time = #{updatedTime}
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteRecordById">
+        UPDATE bitable_record SET del_flag = '1' WHERE id = #{id}
+    </update>
+
+    <update id="deleteRecordByTokenTableRecordId">
+        UPDATE bitable_record SET del_flag = '1'
+        WHERE app_token = #{appToken} AND table_id = #{tableId} AND record_id = #{recordId}
+    </update>
+
+    <update id="deleteRecordsByTable">
+        UPDATE bitable_record SET del_flag = '1'
+        WHERE app_token = #{appToken} AND table_id = #{tableId}
+    </update>
+
+    <update id="deleteRecordByIds">
+        UPDATE bitable_record SET del_flag = '1'
+        WHERE id IN
+        <foreach collection="list" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <select id="selectAllRecords" resultMap="RecordResult">
+        SELECT * FROM bitable_record
+        WHERE app_token = #{appToken} AND table_id = #{tableId} AND del_flag = '0'
+        ORDER BY id DESC
+    </select>
+
+</mapper>

@@ -155,6 +155,21 @@ export const dynamicRoutes = [
     ]
   },
   {
+    path: '/bitable',
+    component: Layout,
+    hidden: true,
+    permissions: ['bitable:app:list'],
+    meta: { title: '多维表格' },
+    children: [
+      {
+        path: 'detail',
+        component: () => import('@/views/bitable/detail'),
+        name: 'BitableDetail',
+        meta: { title: '数据表详情', activeMenu: '/bitable' }
+      }
+    ]
+  },
+  {
     path: '/tool/gen-edit',
     component: Layout,
     hidden: true,

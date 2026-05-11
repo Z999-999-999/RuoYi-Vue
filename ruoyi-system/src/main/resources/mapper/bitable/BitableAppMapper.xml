@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.bitable.mapper.BitableAppMapper">
+
+    <resultMap type="com.ruoyi.bitable.domain.BitableApp" id="AppResult">
+        <id     property="id"          column="id"/>
+        <result property="appToken"    column="app_token"/>
+        <result property="name"        column="name"/>
+        <result property="description" column="description"/>
+        <result property="apiKey"      column="api_key"/>
+        <result property="createBy"    column="created_by"/>
+        <result property="createTime"  column="created_time"/>
+        <result property="updateBy"    column="updated_by"/>
+        <result property="updateTime"  column="updated_time"/>
+        <result property="tableCount"  column="tableCount"/>
+        <result property="recordCount" column="recordCount"/>
+    </resultMap>
+
+    <select id="selectAppById" resultMap="AppResult">
+        SELECT a.id, a.app_token, a.name, a.description, a.api_key,
+               a.created_by, a.created_time, a.updated_by, a.updated_time,
+               (SELECT COUNT(*) FROM bitable_table t WHERE t.app_token = a.app_token AND t.del_flag = '0') AS tableCount,
+               (SELECT COUNT(*) FROM bitable_record r WHERE r.app_token = a.app_token AND r.del_flag = '0') AS recordCount
+        FROM bitable_app a
+        WHERE a.id = #{id} AND a.del_flag = '0'
+    </select>
+
+    <select id="selectAppByToken" resultMap="AppResult">
+        SELECT a.id, a.app_token, a.name, a.description, a.api_key,
+               a.created_by, a.created_time, a.updated_by, a.updated_time,
+               (SELECT COUNT(*) FROM bitable_table t WHERE t.app_token = a.app_token AND t.del_flag = '0') AS tableCount,
+               (SELECT COUNT(*) FROM bitable_record r WHERE r.app_token = a.app_token AND r.del_flag = '0') AS recordCount
+        FROM bitable_app a
+        WHERE a.app_token = #{appToken} AND a.del_flag = '0'
+    </select>
+
+    <select id="selectAppList" resultMap="AppResult">
+        SELECT a.id, a.app_token, a.name, a.description, a.api_key,
+               a.created_by, a.created_time, a.updated_by, a.updated_time,
+               (SELECT COUNT(*) FROM bitable_table t WHERE t.app_token = a.app_token AND t.del_flag = '0') AS tableCount,
+               (SELECT COUNT(*) FROM bitable_record r WHERE r.app_token = a.app_token AND r.del_flag = '0') AS recordCount
+        FROM bitable_app a
+        WHERE a.del_flag = '0'
+        <if test="name != null and name != ''">
+            AND a.name LIKE CONCAT('%', #{name}, '%')
+        </if>
+        <if test="appToken != null and appToken != ''">
+            AND a.app_token = #{appToken}
+        </if>
+        ORDER BY a.id DESC
+    </select>
+
+    <insert id="insertApp" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO bitable_app (app_token, name, description, api_key, created_by, created_time)
+        VALUES (#{appToken}, #{name}, #{description}, #{apiKey}, #{createBy}, #{createTime})
+    </insert>
+
+    <update id="updateApp">
+        UPDATE bitable_app
+        SET name = #{name}, description = #{description}, api_key = #{apiKey},
+            updated_by = #{updateBy}, updated_time = #{updateTime}
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteAppById">
+        UPDATE bitable_app SET del_flag = '1' WHERE id = #{id}
+    </update>
+
+</mapper>

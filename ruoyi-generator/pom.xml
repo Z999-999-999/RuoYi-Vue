@@ -1,35 +1,35 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>ruoyi</artifactId>
         <groupId>com.ruoyi</groupId>
-        <version>3.9.2</version>
+        <version>3.10.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ruoyi-generator</artifactId>
 
     <description>
-        generator代码生成
+        generator浠ｇ爜鐢熸垚
     </description>
 
     <dependencies>
 
-        <!-- velocity代码生成使用模板 -->
+        <!-- velocity浠ｇ爜鐢熸垚浣跨敤妯℃澘 -->
         <dependency>
             <groupId>org.apache.velocity</groupId>
             <artifactId>velocity-engine-core</artifactId>
         </dependency>
 
-        <!-- 通用工具-->
+        <!-- 閫氱敤宸ュ叿-->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-common</artifactId>
         </dependency>
 
-        <!-- 阿里数据库连接池 -->
+        <!-- 闃块噷鏁版嵁搴撹繛鎺ユ睜 -->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-4-starter</artifactId>

@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.bitable.mapper.BitableFieldMapper">
+
+    <resultMap type="com.ruoyi.bitable.domain.BitableField" id="FieldResult">
+        <id     property="id"            column="id"/>
+        <result property="tablePk"       column="table_pk"/>
+        <result property="appToken"      column="app_token"/>
+        <result property="tableId"       column="table_id"/>
+        <result property="fieldId"       column="field_id"/>
+        <result property="fieldName"     column="field_name"/>
+        <result property="type"          column="type"/>
+        <result property="propertyJson"  column="property_json"/>
+        <result property="uiType"        column="ui_type"/>
+        <result property="createdTime"   column="created_time"/>
+        <result property="updatedTime"   column="updated_time"/>
+    </resultMap>
+
+    <select id="selectFieldById" resultMap="FieldResult">
+        SELECT * FROM bitable_field WHERE id = #{id} AND del_flag = '0'
+    </select>
+
+    <select id="selectFieldByTokenTableFieldId" resultMap="FieldResult">
+        SELECT * FROM bitable_field
+        WHERE app_token = #{appToken} AND table_id = #{tableId} AND field_id = #{fieldId} AND del_flag = '0'
+    </select>
+
+    <select id="selectFieldList" resultMap="FieldResult">
+        SELECT * FROM bitable_field
+        WHERE app_token = #{appToken} AND table_id = #{tableId} AND del_flag = '0'
+        ORDER BY id ASC
+    </select>
+
+    <insert id="insertField" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO bitable_field (table_pk, app_token, table_id, field_id, field_name, type, property_json, ui_type, created_time)
+        VALUES (#{tablePk}, #{appToken}, #{tableId}, #{fieldId}, #{fieldName}, #{type}, #{propertyJson}, #{uiType}, #{createdTime})
+    </insert>
+
+    <update id="updateField">
+        UPDATE bitable_field
+        SET field_name = #{fieldName}, type = #{type}, property_json = #{propertyJson},
+            ui_type = #{uiType}, updated_time = #{updatedTime}
+        WHERE id = #{id}
+    </update>
+
+    <update id="deleteFieldById">
+        UPDATE bitable_field SET del_flag = '1' WHERE id = #{id}
+    </update>
+
+    <update id="deleteFieldsByTable">
+        UPDATE bitable_field SET del_flag = '1'
+        WHERE app_token = #{appToken} AND table_id = #{tableId}
+    </update>
+
+</mapper>

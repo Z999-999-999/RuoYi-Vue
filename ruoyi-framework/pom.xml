@@ -1,41 +1,41 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>ruoyi</artifactId>
         <groupId>com.ruoyi</groupId>
-        <version>3.9.2</version>
+        <version>3.10.0</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>ruoyi-framework</artifactId>
 
     <description>
-        framework框架核心
+        framework妗嗘灦鏍稿績
     </description>
 
     <dependencies>
 
-        <!-- SpringBoot Web容器 -->
+        <!-- SpringBoot Web瀹瑰櫒 -->
          <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-webmvc</artifactId>
         </dependency>
 
-        <!-- SpringBoot 拦截器 -->
+        <!-- SpringBoot 鎷︽埅鍣?-->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aspectj</artifactId>
         </dependency>
 
-        <!-- 阿里数据库连接池 -->
+        <!-- 闃块噷鏁版嵁搴撹繛鎺ユ睜 -->
         <dependency>
             <groupId>com.alibaba</groupId>
             <artifactId>druid-spring-boot-4-starter</artifactId>
         </dependency>
 
-        <!-- 验证码 -->
+        <!-- 楠岃瘉鐮?-->
         <dependency>
             <groupId>pro.fessional</groupId>
             <artifactId>kaptcha</artifactId>
@@ -47,13 +47,13 @@
             </exclusions>
         </dependency>
 
-        <!-- 获取系统信息 -->
+        <!-- 鑾峰彇绯荤粺淇℃伅 -->
         <dependency>
             <groupId>com.github.oshi</groupId>
             <artifactId>oshi-core</artifactId>
         </dependency>
 
-        <!-- 系统模块-->
+        <!-- 绯荤粺妯″潡-->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-system</artifactId>

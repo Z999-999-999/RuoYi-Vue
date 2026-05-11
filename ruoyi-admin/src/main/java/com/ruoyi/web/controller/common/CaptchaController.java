@@ -46,7 +46,8 @@ public class CaptchaController
     public AjaxResult getCode(HttpServletResponse response) throws IOException
     {
         AjaxResult ajax = AjaxResult.success();
-        boolean captchaEnabled = configService.selectCaptchaEnabled();
+        // TODO: 强制禁用验证码（开发环境）
+        boolean captchaEnabled = false;
         ajax.put("captchaEnabled", captchaEnabled);
         if (!captchaEnabled)
         {
