@@ -85,6 +85,21 @@
             <span>更新日志</span>
           </div>
           <el-collapse accordion>
+            <el-collapse-item title="v3.10.0 - 2026-05-11">
+              <ol>
+                <li>新增 Bitable 多维表格模块（应用管理、数据表管理、字段配置、记录管理）</li>
+                <li>新增数据上报 API，支持匿名访问与 cid 去重逻辑</li>
+                <li>新增多条件筛选（文本/数字/日期类型分别支持不同操作符）</li>
+                <li>新增 CSV 导出功能（支持嵌套字段，限制 10000 条）</li>
+                <li>新增列显隐控制（localStorage 持久化）</li>
+                <li>新增骨架屏加载、批量操作、字段类型可视化、空状态设计</li>
+                <li>修复 BitableAppMapper SELECT * 问题</li>
+                <li>修复软删除恢复唯一键冲突问题</li>
+                <li>修复验证码配置与 XSS 过滤白名单</li>
+                <li>修复 Druid 连接池属性跨 profile 解析失败</li>
+                <li>版本号从 3.9.2 升级至 3.10.0</li>
+              </ol>
+            </el-collapse-item>
             <el-collapse-item title="v0.0.1 - 2026-05-01">
               <ol>
                 <li>项目初始化，基于 RuoYi-Vue 框架搭建设备出入管理系统</li>
@@ -111,7 +126,7 @@ export default {
   data() {
     return {
       // 版本号
-      version: "0.0.1"
+      version: "3.10.0"
     }
   },
   methods: {

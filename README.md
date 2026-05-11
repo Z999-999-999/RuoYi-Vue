@@ -1,13 +1,13 @@
-<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">设备出入管理系统 v0.0.1</h1>
-<h4 align="center">基于 RuoYi-Vue 框架的设备出入管理平台</h4>
+<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">RuoYi-Vue 多维表格管理系统 v3.10.0</h1>
+<h4 align="center">基于 RuoYi-Vue 框架的多维表格管理平台</h4>
 <p align="center">
-	<img src="https://img.shields.io/badge/版本-v0.0.1-brightgreen.svg">
-	<img src="https://img.shields.io/github/license/mashape/apistatus.svg">
+	<img src="https://img.shields.io/badge/版本-v3.10.0-brightgreen.svg">
+	<img src="https://img.shields.io/github/license/mashape/apistats.svg">
 </p>
 
 ## 平台简介
 
-设备出入管理系统，基于 RuoYi-Vue 前后端分离框架开发，用于管理设备的出入记录、分类统计与员工排行。
+多维表格管理系统，基于 RuoYi-Vue 前后端分离框架开发，在原若依系统基础上新增了 Bitable 多维表格模块，支持灵活的数据上报、多条件筛选与导出。
 
 - 前端采用 Vue、Element UI
 - 后端采用 Spring Boot、Spring Security、Redis & Jwt
@@ -15,6 +15,20 @@
 - 支持加载动态权限菜单，多方式轻松权限控制
 
 ## 核心功能
+
+### Bitable 多维表格模块（v3.10.0 新增）
+
+1. **应用管理**：创建多维表格应用，支持应用级别的访问控制
+2. **数据表管理**：应用下可创建多张数据表，每张表可自定义字段
+3. **字段配置**：支持文本、数字、日期、单选、多选等字段类型，支持列显隐控制（localStorage 持久化）
+4. **数据上报 API**：匿名上报接口（`/api/bitable/reporting/*`），支持基于 cid 的去重逻辑（先查后更）
+5. **多条件筛选**：非日期字段（等于/不等于/包含/不包含/为空/不为空），日期字段（等于/不等于/为空/不为空/晚于/早于）
+6. **CSV 导出**：支持嵌套字段导出，限制 10000 条防止内存溢出
+7. **批量操作**：支持批量删除记录
+8. **软删除与恢复**：删除记录软标记，重复上报自动恢复已删除记录
+9. **XSS 防护**：上报接口已加入 XSS 过滤排除白名单
+
+### 设备出入管理模块
 
 1. **设备分类管理**：支持入/出/通三种分类类型，可自定义分类名称
 2. **设备出入记录**：记录设备出入信息，关联员工与分类，支持日期范围筛选
@@ -52,7 +66,7 @@
 
 | 技术 | 说明 |
 |------|------|
-| Spring Boot | 容器 + MVC 框架 |
+| Spring Boot 4.0.3 | 容器 + MVC 框架 |
 | Spring Security | 认证和授权框架 |
 | JWT | JWT token 支持 |
 | MyBatis | ORM 框架 |
@@ -64,13 +78,28 @@
 
 | 技术 | 说明 |
 |------|------|
-| Vue | 前端框架 |
+| Vue 2 | 前端框架 |
 | Vuex | 状态管理 |
 | Element UI | UI 组件库 |
 | Axios | HTTP 请求库 |
 | Sass | CSS 预处理器 |
 
 ## 更新日志
+
+### v3.10.0 - 2026-05-11
+
+1. 新增 Bitable 多维表格模块（应用管理、数据表管理、字段配置、记录管理）
+2. 新增数据上报 API，支持匿名访问与 cid 去重逻辑
+3. 新增多条件筛选（文本/数字/日期类型分别支持不同操作符）
+4. 新增 CSV 导出功能（支持嵌套字段，限制 10000 条）
+5. 新增列显隐控制（localStorage 持久化）
+6. 新增骨架屏加载、批量操作、字段类型可视化、空状态设计
+7. 修复 BitableAppMapper SELECT * 问题，改为明确字段 + 子查询
+8. 修复软删除恢复唯一键冲突问题
+9. 修复验证码配置（CaptchaController 硬编码 false，DB 配置同步 false）
+10. 修复 XSS 过滤排除上报接口白名单
+11. 修复 Druid 连接池属性跨 profile 解析失败（application.yml 补充属性）
+12. 版本号从 3.9.2 升级至 3.10.0
 
 ### v0.0.1 - 2026-05-01
 
