@@ -162,6 +162,16 @@ export const dynamicRoutes = [
     meta: { title: '多维表格' },
     children: [
       {
+        path: '',
+        redirect: '/bitable/index'
+      },
+      {
+        path: 'index',
+        component: () => import('@/views/bitable/index'),
+        name: 'BitableIndex',
+        meta: { title: '应用列表', activeMenu: '/bitable' }
+      },
+      {
         path: 'detail',
         component: () => import('@/views/bitable/detail'),
         name: 'BitableDetail',

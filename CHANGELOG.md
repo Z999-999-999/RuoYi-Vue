@@ -2,6 +2,24 @@
 
 所有重要更改均会记录在此文件中。
 
+## [3.10.1] - 2026-05-15
+
+### 修复
+
+- 级联删除 Bug：deleteTableById 修复后重新编译未生效，导致字段/记录残留
+- BitableTableMapper.java 语法错误修复（接口末尾多余括号、缺失 @Param import、缺失方法声明）
+- AddressUtils.java 回滚：IP 接口 myip.ipip.net 不接受参数，回滚所有修改
+- 删除应用后遗留孤儿数据问题
+
+### 清理
+
+- 数据库残留数据清理：39条 bitable_field、122条 bitable_record、2张 bitable_table（软删除）
+- 3张孤儿表清理（app 已不存在但 table 仍在）
+
+### 构建
+
+- 版本号从 3.10.0 升级至 3.10.1
+
 ## [3.10.0] - 2026-05-11
 
 ### 新增

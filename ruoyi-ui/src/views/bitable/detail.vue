@@ -225,9 +225,9 @@
           @selection-change="onSelectionChange"
         >
           <el-table-column type="selection" width="45" fixed />
-          <el-table-column label="#" width="60" fixed>
+          <el-table-column label="#" width="80" fixed>
             <template slot-scope="{ row, $index }">
-              {{ $index + 1 }}
+              {{ (pageNum - 1) * pageSize + $index + 1 }}
             </template>
           </el-table-column>
           <el-table-column
@@ -635,9 +635,17 @@ export default {
       if (typeof val === 'number' || /^[0-9]{13}$/.test(String(val))) {
         const ts = parseInt(val)
         if (ts > 1000000000000) { date = new Date(ts) }
-      } else if (typeof val === 'string' && /^[0-9]{4}-[0-9]{2}-[0-9]{2}/.test(val)) {
-        // MySQL datetime字符串
-        date = new Date(val.replace(' ', 'T'))
+      } else if (typeof val === 'string') {
+        // MySQL datetime字符串 YYYY-MM-DD HH:mm:ss（显式解析，避免浏览器兼容问题）
+        if (/^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2}$/.test(val)) {
+          const dt = val.split(' ')
+          const d = dt[0].split('-')
+          const t = dt[1].split(':')
+          date = new Date(d[0], d[1]-1, d[2], t[0], t[1], t[2])
+        } else if (/^[0-9]{4}-[0-9]{2}-[0-9]{2]/.test(val)) {
+          // ISO格式 YYYY-MM-DD 或 YYYY-MM-DDTHH:mm:ss
+          date = new Date(val.replace(' ', 'T'))
+        }
       } else if (val instanceof Date) {
         date = val
       }
@@ -699,7 +707,7 @@ export default {
       return map[type] || ''
     },
     goBack() {
-      this.$router.push('/bitable/index')
+      this.$router.push({ path: '/bitable/index', query: { appToken: this.appToken } })
     },
     // 数据表操作
     handleAddTable() {

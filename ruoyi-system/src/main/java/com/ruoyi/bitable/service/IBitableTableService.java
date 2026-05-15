@@ -9,6 +9,7 @@ import com.ruoyi.bitable.domain.BitableTable;
 public interface IBitableTableService
 {
     public BitableTable selectTableById(Long id);
+    public BitableTable selectTableByIdForDelete(Long id);
     public BitableTable selectTableByTokenAndId(String appToken, String tableId);
     public BitableTable selectDeletedTableByTokenAndId(String appToken, String tableId);
     public int restoreTableById(Long id);
@@ -16,4 +17,5 @@ public interface IBitableTableService
     public int insertTable(BitableTable table);
     public int updateTable(BitableTable table);
     public int deleteTableById(Long id);
+    public int deleteTablesByAppToken(String appToken);
 }

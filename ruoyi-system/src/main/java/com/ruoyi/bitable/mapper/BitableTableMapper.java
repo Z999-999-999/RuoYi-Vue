@@ -1,6 +1,7 @@
 package com.ruoyi.bitable.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.bitable.domain.BitableTable;
 
 /**
@@ -15,6 +16,8 @@ public interface BitableTableMapper
     public List<BitableTable> selectTableList(String appToken);
     public int insertTable(BitableTable table);
     public int updateTable(BitableTable table);
+    public BitableTable selectTableByIdForDelete(Long id);
     public int deleteTableById(Long id);
     public int deleteTableByTokenAndId(String appToken, String tableId);
+    public int deleteTablesByAppToken(@Param("appToken") String appToken);
 }

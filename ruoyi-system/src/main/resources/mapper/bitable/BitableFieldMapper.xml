@@ -17,16 +17,16 @@
     </resultMap>
 
     <select id="selectFieldById" resultMap="FieldResult">
-        SELECT * FROM bitable_field WHERE id = #{id} AND del_flag = '0'
+        SELECT id, table_pk, app_token, table_id, field_id, field_name, type, property_json, ui_type, created_time, updated_time, del_flag FROM bitable_field WHERE id = #{id} AND del_flag = '0'
     </select>
 
     <select id="selectFieldByTokenTableFieldId" resultMap="FieldResult">
-        SELECT * FROM bitable_field
+        SELECT id, table_pk, app_token, table_id, field_id, field_name, type, property_json, ui_type, created_time, updated_time, del_flag FROM bitable_field
         WHERE app_token = #{appToken} AND table_id = #{tableId} AND field_id = #{fieldId} AND del_flag = '0'
     </select>
 
     <select id="selectFieldList" resultMap="FieldResult">
-        SELECT * FROM bitable_field
+        SELECT id, table_pk, app_token, table_id, field_id, field_name, type, property_json, ui_type, created_time, updated_time, del_flag FROM bitable_field
         WHERE app_token = #{appToken} AND table_id = #{tableId} AND del_flag = '0'
         ORDER BY id ASC
     </select>
@@ -43,13 +43,13 @@
         WHERE id = #{id}
     </update>
 
-    <update id="deleteFieldById">
-        UPDATE bitable_field SET del_flag = '1' WHERE id = #{id}
-    </update>
+    <delete id="deleteFieldById">
+        DELETE FROM bitable_field WHERE id = #{id}
+    </delete>
 
-    <update id="deleteFieldsByTable">
-        UPDATE bitable_field SET del_flag = '1'
+    <delete id="deleteFieldsByTable">
+        DELETE FROM bitable_field
         WHERE app_token = #{appToken} AND table_id = #{tableId}
-    </update>
+    </delete>
 
 </mapper>

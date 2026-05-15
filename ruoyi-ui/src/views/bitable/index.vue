@@ -238,7 +238,7 @@ export default {
       return `curl -X POST ${baseUrl}/api/bitable/reporting/${this.currentApp.appToken}/{table_key} \\\n  -H "Authorization: Bearer ${this.currentApp.apiKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\"meta\":{\"fields\":[{\"key\":\"title\",\"name\":\"标题\",\"ui_type\":\"text\"}]},\"list\":[{\"title\":\"测试数据\"}]}'`
     },
     copyReportUrl(app) {
-      const url = `${window.location.origin}/api/bitable/reporting/${app.appToken}/{table_key}`
+      const url = `${window.location.protocol + '//' + window.location.hostname}:8080/api/bitable/reporting/${app.appToken}/{table_key}`
       this.copyText(url)
     },
     copyText(text) {

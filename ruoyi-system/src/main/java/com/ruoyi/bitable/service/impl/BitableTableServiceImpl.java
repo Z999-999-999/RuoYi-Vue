@@ -7,6 +7,8 @@ import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.bitable.domain.BitableTable;
 import com.ruoyi.bitable.mapper.BitableTableMapper;
+import com.ruoyi.bitable.service.IBitableFieldService;
+import com.ruoyi.bitable.service.IBitableRecordService;
 import com.ruoyi.bitable.service.IBitableTableService;
 
 /**
@@ -18,10 +20,22 @@ public class BitableTableServiceImpl implements IBitableTableService
     @Autowired
     private BitableTableMapper tableMapper;
 
+    @Autowired
+    private IBitableRecordService recordService;
+
+    @Autowired
+    private IBitableFieldService fieldService;
+
     @Override
     public BitableTable selectTableById(Long id)
     {
         return tableMapper.selectTableById(id);
+    }
+
+    @Override
+    public BitableTable selectTableByIdForDelete(Long id)
+    {
+        return tableMapper.selectTableByIdForDelete(id);
     }
 
     @Override
@@ -95,6 +109,19 @@ public class BitableTableServiceImpl implements IBitableTableService
     @Override
     public int deleteTableById(Long id)
     {
+        // 使用不带 del_flag 过滤的查询，确保软删除的表也能级联清理字段和记录
+        BitableTable table = tableMapper.selectTableByIdForDelete(id);
+        if (table != null)
+        {
+            recordService.deleteRecordsByTable(table.getAppToken(), table.getTableId());
+            fieldService.deleteFieldsByTable(table.getAppToken(), table.getTableId());
+        }
         return tableMapper.deleteTableById(id);
+    }
+
+    @Override
+    public int deleteTablesByAppToken(String appToken)
+    {
+        return tableMapper.deleteTablesByAppToken(appToken);
     }
 }

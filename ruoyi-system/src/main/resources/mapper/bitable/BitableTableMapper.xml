@@ -15,16 +15,20 @@
     </resultMap>
 
     <select id="selectTableById" resultMap="TableResult">
-        SELECT * FROM bitable_table WHERE id = #{id} AND del_flag = '0'
+        SELECT id, app_id, app_token, table_id, name, created_by, created_time, updated_by, updated_time, del_flag FROM bitable_table WHERE id = #{id} AND del_flag = '0'
+    </select>
+
+    <select id="selectTableByIdForDelete" resultMap="TableResult">
+        SELECT id, app_id, app_token, table_id FROM bitable_table WHERE id = #{id}
     </select>
 
     <select id="selectTableByTokenAndId" resultMap="TableResult">
-        SELECT * FROM bitable_table
+        SELECT id, app_id, app_token, table_id, name, created_by, created_time, updated_by, updated_time, del_flag FROM bitable_table
         WHERE app_token = #{appToken} AND table_id = #{tableId} AND del_flag = '0'
     </select>
 
     <select id="selectTableList" resultMap="TableResult">
-        SELECT * FROM bitable_table WHERE app_token = #{appToken} AND del_flag = '0'
+        SELECT id, app_id, app_token, table_id, name, created_by, created_time, updated_by, updated_time, del_flag FROM bitable_table WHERE app_token = #{appToken} AND del_flag = '0'
         ORDER BY id ASC
     </select>
 
@@ -39,12 +43,12 @@
         WHERE id = #{id}
     </update>
 
-    <update id="deleteTableById">
-        UPDATE bitable_table SET del_flag = '1' WHERE id = #{id}
-    </update>
+    <delete id="deleteTableById">
+        DELETE FROM bitable_table WHERE id = #{id}
+    </delete>
 
     <select id="selectDeletedTableByTokenAndId" resultMap="TableResult">
-        SELECT * FROM bitable_table
+        SELECT id, app_id, app_token, table_id, name, created_by, created_time, updated_by, updated_time, del_flag FROM bitable_table
         WHERE app_token = #{appToken} AND table_id = #{tableId} AND del_flag = '1'
     </select>
 
@@ -52,9 +56,12 @@
         UPDATE bitable_table SET del_flag = '0', updated_time = NOW() WHERE id = #{id}
     </update>
 
-    <update id="deleteTableByTokenAndId">
-        UPDATE bitable_table SET del_flag = '1'
+    <delete id="deleteTableByTokenAndId">
+        DELETE FROM bitable_table
         WHERE app_token = #{appToken} AND table_id = #{tableId}
-    </update>
+    </delete>
 
+    <delete id="deleteTablesByAppToken">
+        DELETE FROM bitable_table WHERE app_token = #{appToken}
+    </delete>
 </mapper>

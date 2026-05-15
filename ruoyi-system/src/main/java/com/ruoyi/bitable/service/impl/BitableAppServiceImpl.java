@@ -6,8 +6,13 @@ import org.springframework.stereotype.Service;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.bitable.domain.BitableApp;
+import com.ruoyi.bitable.domain.BitableTable;
 import com.ruoyi.bitable.mapper.BitableAppMapper;
+import com.ruoyi.bitable.mapper.BitableTableMapper;
 import com.ruoyi.bitable.service.IBitableAppService;
+import com.ruoyi.bitable.service.IBitableFieldService;
+import com.ruoyi.bitable.service.IBitableRecordService;
+import com.ruoyi.bitable.service.IBitableTableService;
 
 /**
  * 多维表格应用Service实现
@@ -17,6 +22,15 @@ public class BitableAppServiceImpl implements IBitableAppService
 {
     @Autowired
     private BitableAppMapper appMapper;
+
+    @Autowired
+    private IBitableTableService tableService;
+
+    @Autowired
+    private IBitableFieldService fieldService;
+
+    @Autowired
+    private IBitableRecordService recordService;
 
     @Override
     public BitableApp selectAppById(Long id)
@@ -72,6 +86,19 @@ public class BitableAppServiceImpl implements IBitableAppService
     @Override
     public int deleteAppById(Long id)
     {
+        // 级联硬删除：先查所有关联表，逐个硬删 record + field + table，最后删 app
+        BitableApp app = appMapper.selectAppById(id);
+        if (app != null)
+        {
+            List<BitableTable> tables = tableService.selectTableList(app.getAppToken());
+            for (BitableTable table : tables)
+            {
+                recordService.deleteRecordsByTable(table.getAppToken(), table.getTableId());
+                fieldService.deleteFieldsByTable(table.getAppToken(), table.getTableId());
+            }
+            // 硬删所有表
+            tableService.deleteTablesByAppToken(app.getAppToken());
+        }
         return appMapper.deleteAppById(id);
     }
 }

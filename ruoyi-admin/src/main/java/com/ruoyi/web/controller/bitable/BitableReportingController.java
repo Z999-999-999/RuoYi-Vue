@@ -3,6 +3,7 @@ package com.ruoyi.web.controller.bitable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -165,13 +166,17 @@ public class BitableReportingController
             List<BitableRecord> recordsToUpdate = new ArrayList<>();
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             
+            // 预加载所有已有记录（用于整行内容比对去重）
+            List<BitableRecord> allRecords = recordService.selectAllRecords(appToken, tableKey);
+            
             for (Map<String, Object> dataItem : dataList)
             {
                 // 规范化日期字段：时间戳数字 → 格式化字符串
                 normalizeDateFields(dataItem, dateFieldKeys, dateFormat);
                 
-                // 尝试从数据中提取唯一标识（cid 或 id 或 _id）
+                // 尝试从数据中提取唯一标识（智能去重：评论ID > 类型ID > cid > 整行比对）
                 String recordId = extractRecordId(dataItem);
+                String currentJson = toJsonString(dataItem);
                 
                 // 检查是否已存在
                 BitableRecord existingRecord = null;
@@ -179,11 +184,23 @@ public class BitableReportingController
                 {
                     existingRecord = recordService.selectRecordByTokenTableRecordId(appToken, tableKey, recordId);
                 }
+                // 无法提取唯一标识时，用整行内容比对去重
+                if (existingRecord == null && (recordId == null || recordId.isEmpty()))
+                {
+                    for (BitableRecord oldRec : allRecords)
+                    {
+                        if (currentJson.equals(oldRec.getFieldsJson()))
+                        {
+                            existingRecord = oldRec;
+                            break;
+                        }
+                    }
+                }
                 
                 if (existingRecord != null)
                 {
                     // 已存在，更新记录
-                    existingRecord.setFieldsJson(toJsonString(dataItem));
+                    existingRecord.setFieldsJson(currentJson);
                     existingRecord.setUpdatedBy("reporting");
                     existingRecord.setUpdatedTime(new Date());
                     recordsToUpdate.add(existingRecord);
@@ -197,7 +214,7 @@ public class BitableReportingController
                     record.setAppToken(appToken);
                     record.setTableId(tableKey);
                     record.setRecordId(recordId); // 使用提取的ID，可能为null
-                    record.setFieldsJson(toJsonString(dataItem));
+                    record.setFieldsJson(currentJson);
                     record.setCreatedBy("reporting");
                     record.setCreatedTime(new Date());
                     recordsToInsert.add(record);
@@ -275,10 +292,54 @@ public class BitableReportingController
 
     /**
      * 从数据中提取唯一标识（用于去重）
-     * 优先级：cid > id > _id
+     * 优先级：
+     * 1. 字段名含"评论ID" → 用评论ID作为唯一标识
+     * 2. 字段名含"类型"（如笔记类型/视频类型）→ 用对应的ID字段（如笔记ID/视频ID）作为唯一标识
+     * 3. cid / id / _id 固定字段
+     * 4. 都没有则返回 null（后续用整行内容比对去重）
      */
     private String extractRecordId(Map<String, Object> dataItem)
     {
+        // 优先级1：查找"评论ID"字段
+        for (String key : dataItem.keySet())
+        {
+            Object val = dataItem.get(key);
+            if (val != null && key.contains("评论ID") && !String.valueOf(val).isEmpty())
+            {
+                return "comment_" + String.valueOf(val);
+            }
+        }
+
+        // 优先级2：查找"类型"字段，提取对应ID
+        for (String key : dataItem.keySet())
+        {
+            if (key.contains("类型"))
+            {
+                Object typeVal = dataItem.get(key);
+                if (typeVal == null) continue;
+                String typeName = String.valueOf(typeVal).trim();
+                // 提取类型名前缀，如"笔记类型"→"笔记"，"视频类型"→"视频"
+                String prefix = typeName.replace("类型", "").trim();
+                if (!prefix.isEmpty())
+                {
+                    // 查找 "笔记ID" / "视频ID" 等对应字段
+                    String idFieldName = prefix + "ID";
+                    for (String k : dataItem.keySet())
+                    {
+                        if (k.contains(idFieldName))
+                        {
+                            Object idVal = dataItem.get(k);
+                            if (idVal != null && !String.valueOf(idVal).isEmpty())
+                            {
+                                return prefix + "_" + String.valueOf(idVal);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 优先级3：固定字段
         Object cid = dataItem.get("cid");
         if (cid != null) return String.valueOf(cid);
         

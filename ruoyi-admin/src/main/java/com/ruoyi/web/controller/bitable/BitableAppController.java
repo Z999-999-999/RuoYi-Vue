@@ -88,10 +88,37 @@ public class BitableAppController extends BaseController
 
     // ==================== 数据表管理 ====================
 
+    /**
+     * 校验 appToken 是否属于一个真实应用，若不通过直接抛异常
+     */
+    private void validateAppToken(String appToken) {
+        if (appToken == null || appToken.isBlank()) {
+            throw new IllegalArgumentException("应用令牌不能为空");
+        }
+        if (appService.selectAppByToken(appToken) == null) {
+            throw new IllegalArgumentException("应用不存在");
+        }
+    }
+
+    /**
+     * 校验 tableId 是否属于给定应用的真实数据表
+     */
+    private void validateTableId(String appToken, String tableId) {
+        if (tableId == null || tableId.isBlank()) {
+            throw new IllegalArgumentException("数据表ID不能为空");
+        }
+        List<BitableTable> tables = tableService.selectTableList(appToken);
+        boolean found = tables.stream().anyMatch(t -> tableId.equals(t.getTableId()));
+        if (!found) {
+            throw new IllegalArgumentException("数据表不存在或不属于该应用");
+        }
+    }
+
     @PreAuthorize("@ss.hasPermi('bitable:app:list')")
     @GetMapping("/table/list/{appToken}")
     public AjaxResult tableList(@PathVariable String appToken)
     {
+        validateAppToken(appToken);
         List<BitableTable> list = tableService.selectTableList(appToken);
         return AjaxResult.success(list);
     }
@@ -126,6 +153,8 @@ public class BitableAppController extends BaseController
     @GetMapping("/field/list/{appToken}/{tableId}")
     public AjaxResult fieldList(@PathVariable String appToken, @PathVariable String tableId)
     {
+        validateAppToken(appToken);
+        validateTableId(appToken, tableId);
         List<BitableField> list = fieldService.selectFieldList(appToken, tableId);
         return AjaxResult.success(list);
     }
@@ -162,11 +191,12 @@ public class BitableAppController extends BaseController
             @RequestParam(required = false) String sortOrder,
             @RequestParam(required = false) String filters)
     {
+        validateAppToken(appToken);
+        validateTableId(appToken, tableId);
         startPage();
         BitableRecord query = new BitableRecord();
         query.setAppToken(appToken);
         query.setTableId(tableId);
-        query.setKeyword(keyword);
         query.setStartDate(startDate);
         query.setEndDate(endDate);
         query.setFilterField(filterField);
@@ -192,6 +222,8 @@ public class BitableAppController extends BaseController
     @GetMapping("/record/count/{appToken}/{tableId}")
     public AjaxResult recordCount(@PathVariable String appToken, @PathVariable String tableId)
     {
+        validateAppToken(appToken);
+        validateTableId(appToken, tableId);
         return AjaxResult.success(recordService.countRecords(appToken, tableId));
     }
 
@@ -208,6 +240,8 @@ public class BitableAppController extends BaseController
     @DeleteMapping("/record/clear/{appToken}/{tableId}")
     public AjaxResult clearRecords(@PathVariable String appToken, @PathVariable String tableId)
     {
+        validateAppToken(appToken);
+        validateTableId(appToken, tableId);
         return toAjax(recordService.deleteRecordsByTable(appToken, tableId));
     }
 
@@ -252,6 +286,8 @@ public class BitableAppController extends BaseController
             @PathVariable String tableId,
             HttpServletResponse response) throws Exception
     {
+        validateAppToken(appToken);
+        validateTableId(appToken, tableId);
         // 查询所有记录（限制 10000 条，防止内存溢出）
         List<BitableRecord> records = recordService.selectAllRecords(appToken, tableId);
         // 查询字段定义

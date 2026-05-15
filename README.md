@@ -1,7 +1,7 @@
-<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">RuoYi-Vue 多维表格管理系统 v3.10.0</h1>
+<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">RuoYi-Vue 多维表格管理系统 v3.10.1</h1>
 <h4 align="center">基于 RuoYi-Vue 框架的多维表格管理平台</h4>
 <p align="center">
-	<img src="https://img.shields.io/badge/版本-v3.10.0-brightgreen.svg">
+	<img src="https://img.shields.io/badge/版本-v3.10.1-brightgreen.svg">
 	<img src="https://img.shields.io/github/license/mashape/apistats.svg">
 </p>
 
@@ -16,7 +16,7 @@
 
 ## 核心功能
 
-### Bitable 多维表格模块（v3.10.0 新增）
+### Bitable 多维表格模块（v3.10.1 新增）
 
 1. **应用管理**：创建多维表格应用，支持应用级别的访问控制
 2. **数据表管理**：应用下可创建多张数据表，每张表可自定义字段
@@ -86,7 +86,7 @@
 
 ## 更新日志
 
-### v3.10.0 - 2026-05-11
+### v3.10.1 - 2026-05-11
 
 1. 新增 Bitable 多维表格模块（应用管理、数据表管理、字段配置、记录管理）
 2. 新增数据上报 API，支持匿名访问与 cid 去重逻辑

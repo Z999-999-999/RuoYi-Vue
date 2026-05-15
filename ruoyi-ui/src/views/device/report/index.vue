@@ -271,20 +271,35 @@
                     </span>
                   </div>
 
-                  <div v-if="getLatestReport(emp.id)" class="report-preview">
-                    <div class="report-date">
-                      最近汇报: {{ formatDate(getLatestReport(emp.id).reportDate) }}
-                    </div>
-                    <div class="platform-preview">
-                      <el-tag
-                        v-for="ps in parsePlatformStats(getLatestReport(emp.id).platformStats)"
-                        :key="ps.platform"
-                        size="mini"
-                        :style="platformStyle(ps.platform)"
-                        class="platform-tag"
-                      >
-                        {{ getPlatformLabel(ps.platform) }}: {{ ps.active }}用 {{ ps.posting }}发
-                      </el-tag>
+                  <div v-if="getRecentReportList(emp.id).length > 0" class="recent-reports">
+                    <div
+                      v-for="(rpt, ridx) in getRecentReportList(emp.id)"
+                      :key="rpt.id"
+                      class="recent-report-item"
+                      :class="{ 'is-latest': ridx === 0 }"
+                    >
+                      <div class="rr-left">
+                        <div class="rr-dot" :class="{ 'dot-latest': ridx === 0 }"></div>
+                        <div v-if="ridx < getRecentReportList(emp.id).length - 1" class="rr-line"></div>
+                      </div>
+                      <div class="rr-content">
+                        <div class="rr-header">
+                          <span class="rr-date">{{ formatDate(rpt.reportDate) }}</span>
+                          <span class="rr-phone" :class="{ 'qty-mismatch': rpt.phoneCount !== emp.phoneTotal }">
+                            <i class="el-icon-mobile-phone"></i> {{ rpt.phoneCount }}台
+                          </span>
+                        </div>
+                        <div class="rr-platforms">
+                          <span
+                            v-for="ps in parsePlatformStats(rpt.platformStats)"
+                            :key="ps.platform"
+                            class="rr-platform-chip"
+                            :style="platformStyle(ps.platform)"
+                          >
+                            {{ getPlatformLabel(ps.platform) }} {{ ps.active }}/{{ ps.posting }}/{{ ps.disabled }}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   <div v-else class="no-report">
@@ -436,6 +451,7 @@
 import {
   listEmployee, getBaseData,
   getReportsByDate, submitReport, deleteReport,
+  getRecentReports,
   getChecksByDate, updateDailyCheck, updateEmployee
 } from '@/api/device/index'
 
@@ -469,7 +485,8 @@ export default {
       batchStep: 1,
       batchRawText: '',
       batchParsed: [],
-      batchSaving: false
+      batchSaving: false,
+      latestReportCache: {}  // employeeId -> [report list]
     }
   },
   computed: {
@@ -546,7 +563,7 @@ export default {
       this.employees = res.data.employees || []
       this.platforms = res.data.accountPlatforms || []
       this.initForms()
-      await Promise.all([this.loadReports(), this.loadChecks()])
+      await Promise.all([this.loadReports(), this.loadChecks(), this.loadLatestReports()])
     },
     initForms() {
       this.employees.forEach(emp => {
@@ -615,7 +632,7 @@ export default {
           }
         }
         this.$message.success('保存成功')
-        await this.loadReports()
+        await Promise.all([this.loadReports(), this.loadLatestReports()])
       } catch(e) {
         this.$message.error('保存失败')
       } finally {
@@ -695,9 +712,27 @@ export default {
       if (this.filterDept && emp.department !== this.filterDept) return false
       return true
     },
+    async loadLatestReports() {
+      // 为每个员工加载最近5条汇报记录
+      const promises = this.employees.map(async emp => {
+        try {
+          const res = await getRecentReports(emp.id, 5)
+          const list = res.data || []
+          if (list.length > 0) {
+            this.$set(this.latestReportCache, emp.id, list)
+          }
+        } catch (e) {
+          // ignore
+        }
+      })
+      await Promise.all(promises)
+    },
     getLatestReport(empId) {
-      // 这里应该获取员工最新的汇报记录，暂时返回null
-      return null
+      const list = this.latestReportCache[empId]
+      return list && list.length > 0 ? list[0] : null
+    },
+    getRecentReportList(empId) {
+      return this.latestReportCache[empId] || []
     },
     avatarColor(name) {
       let h = 0
@@ -930,9 +965,11 @@ export default {
     },
 
     async submitBatchReports() {
-      // 保存所有已匹配员工的记录，自动同步phoneTotal为汇报数
-      const validRecords = this.batchParsed.filter(p => p.matchedEmployee)
+      // 只保存正常项 + 已解决的不一致项，跳过未解决的不一致项
+      const warningIds = new Set(this.phoneWarningItems.map(p => p.name))
+      const validRecords = this.batchParsed.filter(p => p.matchedEmployee && !warningIds.has(p.name))
       const notMatched = this.batchParsed.filter(p => !p.matchedEmployee && p.name)
+      const skippedCount = this.phoneWarningItems.length
 
       if (validRecords.length === 0) {
         this.$message.warning('没有可提交的记录')
@@ -970,6 +1007,9 @@ export default {
         }
 
         let msg = `成功导入 ${successCount} 条记录`
+        if (skippedCount > 0) {
+          msg += `，${skippedCount} 条不一致已跳过`
+        }
         if (notMatched.length > 0) {
           msg += `，${notMatched.length} 人未匹配无法保存`
         }
@@ -978,7 +1018,7 @@ export default {
         }
         this.$message.success(msg)
 
-        await this.loadReports()
+        await Promise.all([this.loadReports(), this.loadLatestReports()])
         this.showBatchDialog = false
         this.batchStep = 1
         this.batchRawText = ''
@@ -1361,29 +1401,93 @@ export default {
   font-size: 11px;
   color: #f59e0b;
 }
-.report-preview {
-  margin-bottom: 8px;
-}
-.report-date {
-  font-size: 11px;
-  color: #94a3b8;
-  margin-bottom: 4px;
-}
-.platform-preview {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.platform-tag {
-  font-size: 10px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  font-weight: 700;
-}
 .no-report {
   font-size: 11px;
   color: #94a3b8;
   margin-bottom: 8px;
+}
+
+/* ========== 最近汇报时间线 ========== */
+.recent-reports {
+  margin-bottom: 8px;
+  padding-left: 2px;
+}
+.recent-report-item {
+  display: flex;
+  position: relative;
+  min-height: 42px;
+}
+.recent-report-item.is-latest .rr-content {
+  background: #f8fafc;
+  border-radius: 6px;
+}
+.rr-left {
+  width: 16px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 6px;
+}
+.rr-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+  flex-shrink: 0;
+}
+.rr-dot.dot-latest {
+  background: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+}
+.rr-line {
+  width: 2px;
+  flex: 1;
+  background: #e2e8f0;
+  margin-top: 4px;
+}
+.rr-content {
+  flex: 1;
+  padding: 4px 8px 8px 6px;
+  min-width: 0;
+}
+.rr-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.rr-date {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+}
+.is-latest .rr-date {
+  color: #3b82f6;
+}
+.rr-phone {
+  font-size: 11px;
+  color: #334155;
+  font-weight: 500;
+}
+.rr-phone.qty-mismatch {
+  color: #ef4444;
+}
+.rr-phone .el-icon-mobile-phone {
+  font-size: 12px;
+}
+.rr-platforms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+.rr-platform-chip {
+  font-size: 10px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
 }
 .note-section {
   margin-bottom: 8px;

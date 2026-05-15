@@ -62,8 +62,8 @@
         WHERE id = #{id}
     </update>
 
-    <update id="deleteAppById">
-        UPDATE bitable_app SET del_flag = '1' WHERE id = #{id}
-    </update>
+    <delete id="deleteAppById">
+        DELETE FROM bitable_app WHERE id = #{id}
+    </delete>
 
 </mapper>
