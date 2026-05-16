@@ -2,7 +2,9 @@ package com.ruoyi.bitable.service.impl;
 
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import com.ruoyi.common.utils.AesUtils;
 import com.ruoyi.common.utils.DateUtils;
 import com.ruoyi.common.utils.uuid.IdUtils;
 import com.ruoyi.bitable.domain.BitableApp;
@@ -20,6 +22,9 @@ import com.ruoyi.bitable.service.IBitableTableService;
 @Service
 public class BitableAppServiceImpl implements IBitableAppService
 {
+    @Value("${aes.secretKey}")
+    private String aesSecretKey;
+
     @Autowired
     private BitableAppMapper appMapper;
 
@@ -32,22 +37,43 @@ public class BitableAppServiceImpl implements IBitableAppService
     @Autowired
     private IBitableRecordService recordService;
 
+    /** 解密 API Key（加密存储的自动解密，未加密的原样返回） */
+    private void decryptApiKey(BitableApp app)
+    {
+        if (app != null && app.getApiKey() != null && AesUtils.isEncrypted(app.getApiKey()))
+        {
+            try { app.setApiKey(AesUtils.decrypt(app.getApiKey(), aesSecretKey)); } catch (Exception e) { /* 解密失败保留原值 */ }
+        }
+    }
+
+    /** 批量解密 API Key */
+    private void decryptApiKeys(List<BitableApp> apps)
+    {
+        if (apps != null) apps.forEach(this::decryptApiKey);
+    }
+
     @Override
     public BitableApp selectAppById(Long id)
     {
-        return appMapper.selectAppById(id);
+        BitableApp app = appMapper.selectAppById(id);
+        decryptApiKey(app);
+        return app;
     }
 
     @Override
     public BitableApp selectAppByToken(String appToken)
     {
-        return appMapper.selectAppByToken(appToken);
+        BitableApp app = appMapper.selectAppByToken(appToken);
+        // 注意：selectAppByToken 用于上报接口验证，不解密（直接与加密值比对）
+        return app;
     }
 
     @Override
     public List<BitableApp> selectAppList(BitableApp app)
     {
-        return appMapper.selectAppList(app);
+        List<BitableApp> list = appMapper.selectAppList(app);
+        decryptApiKeys(list);
+        return list;
     }
 
     /** 安全获取当前用户名，匿名接口时返回null */
@@ -68,8 +94,9 @@ public class BitableAppServiceImpl implements IBitableAppService
     {
         // 自动生成 app_token: basc + 14位随机字符
         app.setAppToken("basc" + IdUtils.fastSimpleUUID().substring(0, 14));
-        // 自动生成 api_key: ak_ + 20位随机字符
-        app.setApiKey("ak_" + IdUtils.fastSimpleUUID().substring(0, 20));
+        // 自动生成 api_key: ak_ + 20位随机字符，加密存储
+        String rawApiKey = "ak_" + IdUtils.fastSimpleUUID().substring(0, 20);
+        app.setApiKey(AesUtils.encrypt(rawApiKey, aesSecretKey));
         app.setCreateBy(safeGetUsername());
         app.setCreateTime(DateUtils.getNowDate());
         return appMapper.insertApp(app);
@@ -78,6 +105,23 @@ public class BitableAppServiceImpl implements IBitableAppService
     @Override
     public int updateApp(BitableApp app)
     {
+        // 如果前端传了新的 apiKey（明文），加密后再存储
+        if (app.getApiKey() != null && app.getApiKey().startsWith("ak_"))
+        {
+            app.setApiKey(AesUtils.encrypt(app.getApiKey(), aesSecretKey));
+        }
+        app.setUpdateBy(safeGetUsername());
+        app.setUpdateTime(DateUtils.getNowDate());
+        return appMapper.updateApp(app);
+    }
+
+    @Override
+    public int resetApiKey(Long id)
+    {
+        BitableApp app = appMapper.selectAppById(id);
+        if (app == null) return 0;
+        String rawApiKey = "ak_" + IdUtils.fastSimpleUUID().substring(0, 20);
+        app.setApiKey(AesUtils.encrypt(rawApiKey, aesSecretKey));
         app.setUpdateBy(safeGetUsername());
         app.setUpdateTime(DateUtils.getNowDate());
         return appMapper.updateApp(app);

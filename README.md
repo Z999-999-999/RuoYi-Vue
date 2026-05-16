@@ -1,7 +1,7 @@
-<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">RuoYi-Vue 多维表格管理系统 v3.10.2</h1>
+<h1 align="center" style="margin: 30px 0 30px; font-weight: bold;">RuoYi-Vue 多维表格管理系统 v3.10.3</h1>
 <h4 align="center">基于 RuoYi-Vue 框架的多维表格管理平台</h4>
 <p align="center">
-	<img src="https://img.shields.io/badge/版本-v3.10.2-brightgreen.svg">
+	<img src="https://img.shields.io/badge/版本-v3.10.3-brightgreen.svg">
 	<img src="https://img.shields.io/github/license/mashape/apistats.svg">
 </p>
 

@@ -1,5 +1,6 @@
 package com.ruoyi.web.controller.bitable;
 
+import java.security.MessageDigest;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -9,8 +10,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.ruoyi.common.annotation.Anonymous;
+import com.ruoyi.common.utils.AesUtils;
 import com.ruoyi.bitable.domain.BitableApp;
 import com.ruoyi.bitable.domain.BitableField;
 import com.ruoyi.bitable.domain.BitableRecord;
@@ -33,6 +38,9 @@ import com.ruoyi.bitable.service.IBitableTableService;
 @RequestMapping("/api/bitable/reporting")
 public class BitableReportingController
 {
+    @Value("${aes.secretKey}")
+    private String aesSecretKey;
+
     @Autowired
     private IBitableAppService appService;
 
@@ -49,7 +57,7 @@ public class BitableReportingController
      * 接收社媒助手数据上报
      */
     @PostMapping("/{app_token}/{table_key}")
-    public Map<String, Object> reporting(
+    public ResponseEntity<Map<String, Object>> reporting(
             @PathVariable("app_token") String appToken,
             @PathVariable("table_key") String tableKey,
             @RequestHeader(value = "Authorization", required = false) String authHeader,
@@ -60,23 +68,54 @@ public class BitableReportingController
             // ==================== 参数校验（防御） ====================
             if (appToken == null || appToken.trim().isEmpty() || tableKey == null || tableKey.trim().isEmpty())
             {
-                return error(400, "app_token 和 table_key 不能为空");
+                return errResp(400, "app_token 和 table_key 不能为空");
             }
             if (body == null)
             {
-                return error(400, "请求体不能为空");
+                return errResp(400, "请求体不能为空");
+            }
+            // 校验请求体必须包含 meta 或 list
+            if (body.get("meta") == null && body.get("list") == null)
+            {
+                return errResp(400, "请求体必须包含 meta 或 list");
+            }
+            // 校验 list 大小
+            Object listRaw = body.get("list");
+            if (listRaw instanceof List && ((List<?>) listRaw).size() > 5000)
+            {
+                return errResp(413, "单次上报记录不能超过5000条");
+            }
+            // 校验 appToken / tableKey 格式（防注入）
+            if (!appToken.matches("^[a-zA-Z0-9_-]+$") || !tableKey.matches("^[a-zA-Z0-9_-]+$"))
+            {
+                return errResp(400, "app_token 和 table_key 格式无效");
             }
 
             // 1. 验证 api_key
             String apiKey = extractApiKey(authHeader);
             if (apiKey == null)
             {
-                return error(401, "缺少Authorization请求头");
+                return errResp(401, "缺少Authorization请求头");
+            }
+            // 校验 apiKey 格式（防止注入）
+            if (!apiKey.matches("^[a-zA-Z0-9_-]+$"))
+            {
+                return errResp(401, "Authorization格式无效");
             }
             BitableApp app = appService.selectAppByToken(appToken);
-            if (app == null || !apiKey.equals(app.getApiKey()))
+            if (app == null)
             {
-                return error(403, "api_key无效或应用不存在");
+                return errResp(403, "api_key无效或应用不存在");
+            }
+            // 解密数据库中的 apiKey 后做常量时间比较
+            String storedApiKey = app.getApiKey();
+            if (AesUtils.isEncrypted(storedApiKey))
+            {
+                try { storedApiKey = AesUtils.decrypt(storedApiKey, aesSecretKey); } catch (Exception e) { return errResp(403, "api_key无效"); }
+            }
+            if (!constantTimeEquals(apiKey, storedApiKey))
+            {
+                return errResp(403, "api_key无效或应用不存在");
             }
 
             // 2. 查找或自动创建数据表
@@ -275,18 +314,18 @@ public class BitableReportingController
         if (insertCount > 0) msg += "（新增" + insertCount + "条";
         if (updateCount > 0) msg += "，更新" + updateCount + "条";
         if (insertCount > 0 || updateCount > 0) msg += "）";
-        return success(msg);
+        return ResponseEntity.ok(success(msg));
         }
         catch (java.lang.OutOfMemoryError oome)
         {
             System.err.println("[BitableReporting] 数据量过大，内存溢出: " + oome.getMessage());
-            return error(413, "数据量过大，请减少每次上报的记录数量（建议不超过5000条）");
+            return errResp(413, "数据量过大，请减少每次上报的记录数量（建议不超过5000条）");
         }
         catch (Exception e)
         {
             System.err.println("[BitableReporting] 处理数据时发生异常: " + e.getClass().getName() + ": " + e.getMessage());
             // 不泄露堆栈，只返回友好错误
-            return error(500, "服务器处理数据时发生异常，请稍后重试");
+            return errResp(500, "服务器处理数据时发生异常，请稍后重试");
         }
     }
 
@@ -391,6 +430,17 @@ public class BitableReportingController
         if (_id != null) return String.valueOf(_id);
         
         return null;
+    }
+
+    /**
+     * 常量时间字符串比较（防时序攻击）
+     */
+    private boolean constantTimeEquals(String a, String b)
+    {
+        if (a == null || b == null) return false;
+        byte[] aBytes = a.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        byte[] bBytes = b.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        return MessageDigest.isEqual(aBytes, bBytes);
     }
 
     /**
@@ -508,8 +558,8 @@ public class BitableReportingController
         return Map.of("code", 0, "msg", msg);
     }
 
-    private Map<String, Object> error(int code, String msg)
+    private ResponseEntity<Map<String, Object>> errResp(int httpStatus, String msg)
     {
-        return Map.of("code", code, "msg", msg);
+        return ResponseEntity.status(httpStatus).body(Map.of("code", httpStatus, "msg", msg));
     }
 }

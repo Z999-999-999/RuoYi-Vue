@@ -2,6 +2,27 @@
 
 所有重要更改均会记录在此文件中。
 
+## [3.10.3] - 2026-05-17
+
+### 修复
+
+- 重置 API Key 无效：前端改用 RuoYi request 封装调用，替换不存在的 this.$axios
+- 上报接口错误返回 HTTP 200：改为 ResponseEntity 返回正确状态码（400/401/403/413/500）
+- curl 示例和复制上报地址缺端口号：补充 :8080 端口
+
+### 安全
+
+- API Key AES-128 加密存储（AesUtils 工具类）
+- 常量时间字符串比较防时序攻击（MessageDigest.isEqual）
+- 删除 BitableTestController 匿名测试接口
+- 新增 resetApiKey 接口，支持前端重置 API Key
+- 上报接口格式校验（app_token/table_key 正则、body 结构检查）
+- 批量删除添加权限校验
+
+### 构建
+
+- 版本号从 3.10.2 升级至 3.10.3
+
 ## [3.10.2] - 2026-05-17
 
 ### 修复

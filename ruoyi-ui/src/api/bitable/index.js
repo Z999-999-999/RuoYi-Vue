@@ -22,6 +22,10 @@ export function deleteApp(id) {
   return request({ url: `/bitable/app/${id}`, method: 'delete' })
 }
 
+export function resetApiKey(id) {
+  return request({ url: `/bitable/app/resetApiKey/${id}`, method: 'post' })
+}
+
 // ==================== 数据表管理 ====================
 
 export function listTable(appToken) {

@@ -5,10 +5,14 @@ import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.ruoyi.common.annotation.Log;
@@ -16,6 +20,7 @@ import com.ruoyi.common.core.controller.BaseController;
 import com.ruoyi.common.core.domain.AjaxResult;
 import com.ruoyi.common.core.page.TableDataInfo;
 import com.ruoyi.common.enums.BusinessType;
+import com.ruoyi.common.utils.AesUtils;
 import com.ruoyi.bitable.domain.BitableApp;
 import com.ruoyi.bitable.domain.BitableField;
 import com.ruoyi.bitable.domain.BitableRecord;
@@ -32,6 +37,11 @@ import com.ruoyi.bitable.service.IBitableTableService;
 @RequestMapping("/bitable")
 public class BitableAppController extends BaseController
 {
+    private static final Logger log = LoggerFactory.getLogger(BitableAppController.class);
+
+    @Value("${aes.secretKey}")
+    private String aesSecretKey;
+
     @Autowired
     private IBitableAppService appService;
 
@@ -84,6 +94,21 @@ public class BitableAppController extends BaseController
     public AjaxResult removeApp(@PathVariable Long id)
     {
         return toAjax(appService.deleteAppById(id));
+    }
+
+    /** 重置 API Key */
+    @PreAuthorize("@ss.hasPermi('bitable:app:edit')")
+    @Log(title = "多维表格-重置API Key", businessType = BusinessType.UPDATE)
+    @PostMapping("/app/resetApiKey/{id}")
+    public AjaxResult resetApiKey(@PathVariable Long id)
+    {
+        int rows = appService.resetApiKey(id);
+        if (rows > 0)
+        {
+            BitableApp app = appService.selectAppById(id);
+            return AjaxResult.success("API Key 已重置", app);
+        }
+        return AjaxResult.error("重置失败，应用不存在");
     }
 
     // ==================== 数据表管理 ====================
@@ -286,86 +311,104 @@ public class BitableAppController extends BaseController
     public void exportRecords(
             @PathVariable String appToken,
             @PathVariable String tableId,
-            HttpServletResponse response) throws Exception
+            HttpServletResponse response)
     {
-        validateAppToken(appToken);
-        validateTableId(appToken, tableId);
-        // 查询所有记录（限制 10000 条，防止内存溢出）
-        List<BitableRecord> records = recordService.selectAllRecords(appToken, tableId);
-        // 查询字段定义
-        List<BitableField> fields = fieldService.selectFieldList(appToken, tableId);
-        // 查询表名
-        List<BitableTable> tables = tableService.selectTableList(appToken);
-        String tableName = tableId;
-        for (BitableTable t : tables)
+        try
         {
-            if (tableId.equals(t.getTableId())) { tableName = t.getName(); break; }
-        }
-        // 生成 XLSX
-        try (Workbook workbook = new XSSFWorkbook())
-        {
-            Sheet sheet = workbook.createSheet(tableName);
-            // 表头样式
-            CellStyle headerStyle = workbook.createCellStyle();
-            Font headerFont = workbook.createFont();
-            headerFont.setBold(true);
-            headerStyle.setFont(headerFont);
-            headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
-            headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-            // 写表头
-            Row headerRow = sheet.createRow(0);
-            for (int i = 0; i < fields.size(); i++)
+            validateAppToken(appToken);
+            validateTableId(appToken, tableId);
+            // 查询记录（限制10000条，防止内存溢出）
+            List<BitableRecord> records = recordService.selectAllRecords(appToken, tableId);
+            if (records.size() > 10000)
             {
-                Cell cell = headerRow.createCell(i);
-                cell.setCellValue(fields.get(i).getFieldName());
-                cell.setCellStyle(headerStyle);
+                records = records.subList(0, 10000);
             }
-            Cell timeCell = headerRow.createCell(fields.size());
-            timeCell.setCellValue("上报时间");
-            timeCell.setCellStyle(headerStyle);
-            // 数据行
-            com.fasterxml.jackson.databind.ObjectMapper jsonMapper = new com.fasterxml.jackson.databind.ObjectMapper();
-            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-            for (int rowIdx = 0; rowIdx < records.size(); rowIdx++)
+            // 查询字段定义
+            List<BitableField> fields = fieldService.selectFieldList(appToken, tableId);
+            // 查询表名
+            List<BitableTable> tables = tableService.selectTableList(appToken);
+            String tableName = tableId;
+            for (BitableTable t : tables)
             {
-                BitableRecord r = records.get(rowIdx);
-                Row row = sheet.createRow(rowIdx + 1);
-                Map<String, Object> fieldsMap = new HashMap<>();
-                if (r.getFieldsJson() != null && !r.getFieldsJson().isEmpty())
-                {
-                    try { fieldsMap = jsonMapper.readValue(r.getFieldsJson(), Map.class); } catch (Exception e) {}
-                }
+                if (tableId.equals(t.getTableId())) { tableName = t.getName(); break; }
+            }
+            // 生成 XLSX
+            try (Workbook workbook = new XSSFWorkbook())
+            {
+                Sheet sheet = workbook.createSheet(tableName);
+                // 表头样式
+                CellStyle headerStyle = workbook.createCellStyle();
+                Font headerFont = workbook.createFont();
+                headerFont.setBold(true);
+                headerStyle.setFont(headerFont);
+                headerStyle.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+                headerStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+                // 写表头
+                Row headerRow = sheet.createRow(0);
                 for (int i = 0; i < fields.size(); i++)
                 {
-                    Cell cell = row.createCell(i);
-                    String fid = fields.get(i).getFieldId();
-                    Object val = getNestedValue(fieldsMap, fid);
-                    if (val != null)
+                    Cell cell = headerRow.createCell(i);
+                    cell.setCellValue(fields.get(i).getFieldName());
+                    cell.setCellStyle(headerStyle);
+                }
+                Cell timeCell = headerRow.createCell(fields.size());
+                timeCell.setCellValue("上报时间");
+                timeCell.setCellStyle(headerStyle);
+                // 数据行
+                com.fasterxml.jackson.databind.ObjectMapper jsonMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                for (int rowIdx = 0; rowIdx < records.size(); rowIdx++)
+                {
+                    BitableRecord r = records.get(rowIdx);
+                    Row row = sheet.createRow(rowIdx + 1);
+                    Map<String, Object> fieldsMap = new HashMap<>();
+                    if (r.getFieldsJson() != null && !r.getFieldsJson().isEmpty())
                     {
-                        String strVal = val instanceof Map || val instanceof List ? jsonMapper.writeValueAsString(val) : String.valueOf(val);
-                        cell.setCellValue(strVal);
+                        try { fieldsMap = jsonMapper.readValue(r.getFieldsJson(), Map.class); } catch (Exception e) {}
+                    }
+                    for (int i = 0; i < fields.size(); i++)
+                    {
+                        Cell cell = row.createCell(i);
+                        String fid = fields.get(i).getFieldId();
+                        Object val = getNestedValue(fieldsMap, fid);
+                        if (val != null)
+                        {
+                            String strVal = val instanceof Map || val instanceof List ? jsonMapper.writeValueAsString(val) : String.valueOf(val);
+                            cell.setCellValue(strVal);
+                        }
+                    }
+                    // 上报时间
+                    Cell cTime = row.createCell(fields.size());
+                    if (r.getCreatedTime() != null)
+                    {
+                        cTime.setCellValue(sdf.format(r.getCreatedTime()));
                     }
                 }
-                // 上报时间
-                Cell cTime = row.createCell(fields.size());
-                if (r.getCreatedTime() != null)
+                // 自动列宽
+                for (int i = 0; i <= fields.size(); i++)
                 {
-                    cTime.setCellValue(sdf.format(r.getCreatedTime()));
+                    sheet.autoSizeColumn(i);
                 }
+                // 写入响应
+                String fileName = URLEncoder.encode(tableName + "_导出.xlsx", "UTF-8").replace("+", "%20");
+                response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+                response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
+                OutputStream os = response.getOutputStream();
+                workbook.write(os);
+                os.flush();
+                os.close();
             }
-            // 自动列宽
-            for (int i = 0; i <= fields.size(); i++)
+        }
+        catch (Exception e)
+        {
+            log.error("导出记录异常: appToken={}, tableId={}", appToken, tableId, e);
+            try
             {
-                sheet.autoSizeColumn(i);
+                response.reset();
+                response.setContentType("application/json;charset=utf-8");
+                response.getWriter().println("{\"msg\":\"导出失败：" + e.getMessage().replace("\"", "\\\"") + "\",\"code\":500}");
             }
-            // 写入响应
-            String fileName = URLEncoder.encode(tableName + "_导出.xlsx", "UTF-8").replace("+", "%20");
-            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            response.setHeader("Content-Disposition", "attachment; filename=" + fileName);
-            OutputStream os = response.getOutputStream();
-            workbook.write(os);
-            os.flush();
-            os.close();
+            catch (Exception ignored) {}
         }
     }
 
@@ -379,6 +422,14 @@ public class BitableAppController extends BaseController
     @DeleteMapping("/record/batch")
     public AjaxResult batchRemoveRecord(@RequestBody List<Long> ids)
     {
+        if (ids == null || ids.isEmpty())
+        {
+            return AjaxResult.error("请选择要删除的记录");
+        }
+        if (ids.size() > 500)
+        {
+            return AjaxResult.error("单次批量删除不能超过500条");
+        }
         return toAjax(recordService.deleteRecordByIds(ids));
     }
     

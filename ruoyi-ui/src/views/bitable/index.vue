@@ -68,6 +68,7 @@
             <el-dropdown-menu slot="dropdown">
               <el-dropdown-item @click.native="handleEdit(app)">编辑</el-dropdown-item>
               <el-dropdown-item @click.native="showApiKey(app)">查看API Key</el-dropdown-item>
+              <el-dropdown-item @click.native="resetApiKey(app)">重置API Key</el-dropdown-item>
               <el-dropdown-item @click.native="copyReportUrl(app)">复制上报地址</el-dropdown-item>
               <el-dropdown-item divided @click.native="handleDelete(app)">删除</el-dropdown-item>
             </el-dropdown-menu>
@@ -111,6 +112,10 @@
           <code>{{ currentApp.apiKey }}</code>
           <el-button type="text" size="mini" @click="copyText(currentApp.apiKey)">复制</el-button>
         </div>
+        <div style="margin-top:4px">
+          <el-button type="warning" size="mini" plain @click="resetApiKey(currentApp)">重置 API Key</el-button>
+          <span style="color:#909399;font-size:12px;margin-left:8px">重置后旧 Key 立即失效</span>
+        </div>
         <el-divider />
         <p class="apikey-label">完整请求（直接复制）</p>
         <div class="apikey-row block">
@@ -123,7 +128,7 @@
 </template>
 
 <script>
-import { listApp, addApp, updateApp, deleteApp } from '@/api/bitable'
+import { listApp, addApp, updateApp, deleteApp, resetApiKey } from '@/api/bitable'
 
 export default {
   name: 'BitableAppList',
@@ -257,13 +262,30 @@ export default {
       this.currentApp = app
       this.apiKeyVisible = true
     },
+    resetApiKey(app) {
+      this.$confirm('重置后旧 API Key 将立即失效，确定重置？', '重置 API Key', {
+        confirmButtonText: '确定重置',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        resetApiKey(app.id).then(res => {
+          this.$message.success('API Key 已重置')
+          this.currentApp = res.data || app
+          this.apiKeyVisible = true
+          this.loadApps()
+        }).catch(() => {
+          this.$message.error('重置失败')
+        })
+      }).catch(() => {})
+    },
     getCurlCommand() {
       if (!this.currentApp.appToken || !this.currentApp.apiKey) return ''
-      const baseUrl = window.location.origin
-      return `curl -X POST ${baseUrl}/api/bitable/reporting/${this.currentApp.appToken}/{table_key} \\\n  -H "Authorization: Bearer ${this.currentApp.apiKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\"meta\":{\"fields\":[{\"key\":\"title\",\"name\":\"标题\",\"ui_type\":\"text\"}]},\"list\":[{\"title\":\"测试数据\"}]}'`
+      const apiUrl = window.location.origin.replace(/:\d+$/, '') + ':8080'
+      return `curl -X POST ${apiUrl}/api/bitable/reporting/${this.currentApp.appToken}/{table_key} \\\n  -H "Authorization: Bearer ${this.currentApp.apiKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\"meta\":{\"fields\":[{\"key\":\"title\",\"name\":\"标题\",\"ui_type\":\"text\"}]},\"list\":[{\"title\":\"测试数据\"}]}'`
     },
     copyReportUrl(app) {
-      const url = `${window.location.origin}/api/bitable/reporting/${app.appToken}/{table_key}`
+      const apiUrl = window.location.origin.replace(/:\d+$/, '') + ':8080'
+      const url = `${apiUrl}/api/bitable/reporting/${app.appToken}/{table_key}`
       this.copyText(url)
     },
     copyText(text) {

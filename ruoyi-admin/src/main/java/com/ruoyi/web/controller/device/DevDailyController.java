@@ -41,6 +41,10 @@ public class DevDailyController extends BaseController
     @GetMapping("/report")
     public AjaxResult getReports(@RequestParam String reportDate)
     {
+        if (!reportDate.matches("^\\d{4}-\\d{2}-\\d{2}$"))
+        {
+            return AjaxResult.error("日期格式错误，请使用 YYYY-MM-DD 格式");
+        }
         return AjaxResult.success(reportService.selectReportByDate(reportDate));
     }
 
@@ -82,6 +86,10 @@ public class DevDailyController extends BaseController
     @GetMapping("/check")
     public AjaxResult getChecks(@RequestParam String checkDate)
     {
+        if (!checkDate.matches("^\\d{4}-\\d{2}-\\d{2}$"))
+        {
+            return AjaxResult.error("日期格式错误，请使用 YYYY-MM-DD 格式");
+        }
         return AjaxResult.success(checkService.selectCheckByDate(checkDate));
     }
 

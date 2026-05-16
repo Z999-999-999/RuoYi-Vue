@@ -14,4 +14,5 @@ public interface IBitableAppService
     public int insertApp(BitableApp app);
     public int updateApp(BitableApp app);
     public int deleteAppById(Long id);
+    public int resetApiKey(Long id);
 }
