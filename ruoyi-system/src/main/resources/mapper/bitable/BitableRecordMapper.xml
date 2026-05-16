@@ -127,8 +127,16 @@
                 <if test="sortField == 'createdTime'">
                     ORDER BY created_time ${sortOrder}
                 </if>
-                <if test="sortField != 'createdTime'">
-                    ORDER BY id DESC
+                                <if test="sortField != 'createdTime'">
+                        ORDER BY
+                        <choose>
+                            <when test="sortType == 'number'">
+                                JSON_EXTRACT(fields_json, CONCAT('$.', #{sortField})) + 0 ${sortOrder}
+                            </when>
+                            <otherwise>
+                                JSON_UNQUOTE(JSON_EXTRACT(fields_json, CONCAT('$.', #{sortField}))) ${sortOrder}
+                            </otherwise>
+                        </choose>
                 </if>
             </when>
             <otherwise>

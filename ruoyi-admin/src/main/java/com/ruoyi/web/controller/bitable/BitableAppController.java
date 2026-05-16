@@ -189,6 +189,7 @@ public class BitableAppController extends BaseController
             @RequestParam(required = false) String filterValue,
             @RequestParam(required = false) String sortField,
             @RequestParam(required = false) String sortOrder,
+            @RequestParam(required = false) String sortType,
             @RequestParam(required = false) String filters)
     {
         validateAppToken(appToken);
@@ -203,6 +204,7 @@ public class BitableAppController extends BaseController
         query.setFilterValue(filterValue);
         query.setSortField(sortField);
         query.setSortOrder(sortOrder);
+        query.setSortType(sortType);
         // 多条件筛选：前端传JSON数组字符串，后端解析
         if (filters != null && !filters.isEmpty()) {
             try {

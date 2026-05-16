@@ -6,7 +6,17 @@
         <h2 class="page-title">多维表格</h2>
         <span class="page-desc">管理数据应用，接收社媒助手数据上报</span>
       </div>
-      <el-button type="primary" size="small" icon="el-icon-plus" @click="handleAdd">新建应用</el-button>
+      <div class="header-right">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索应用名称"
+          size="small"
+          prefix-icon="el-icon-search"
+          clearable
+          style="width: 220px; margin-right: 12px"
+        />
+        <el-button type="primary" size="small" icon="el-icon-plus" @click="handleAdd">新建应用</el-button>
+      </div>
     </div>
 
     <!-- ========== 统计概览 ========== -->
@@ -16,7 +26,7 @@
           <i class="el-icon-s-grid" />
         </div>
         <div class="stat-text">
-          <div class="stat-value">{{ appList.length }}</div>
+          <div class="stat-value">{{ filteredApps.length }}</div>
           <div class="stat-label">应用总数</div>
         </div>
       </div>
@@ -44,7 +54,7 @@
     <div v-loading="loading" class="app-grid">
       <el-empty v-if="!loading && appList.length === 0" description="暂无应用，点击右上角新建" />
 
-      <div v-for="app in appList" :key="app.id" class="app-card" @click="openApp(app)">
+      <div v-for="app in filteredApps" :key="app.id" class="app-card" @click="openApp(app)">
         <div class="card-header">
           <div class="card-icon" :style="{ background: getAppGradient(app.name) }">
             <i :class="getAppIcon(app.name)" />
@@ -120,6 +130,8 @@ export default {
   data() {
     return {
       loading: false,
+      searchKeyword: '',
+      sortOrder: 'default', // default | name | time
       appList: [],
       // 弹窗
       dialogVisible: false,
@@ -139,11 +151,24 @@ export default {
     this.loadApps()
   },
   computed: {
+    filteredApps() {
+      let list = this.appList
+      if (this.searchKeyword) {
+        const kw = this.searchKeyword.toLowerCase()
+        list = list.filter(a => (a.name || '').toLowerCase().includes(kw) || (a.appToken || '').toLowerCase().includes(kw))
+      }
+      if (this.sortOrder === 'name') {
+        list = [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''))
+      } else if (this.sortOrder === 'time') {
+        list = [...list].sort((a, b) => new Date(b.createTime) - new Date(a.createTime))
+      }
+      return list
+    },
     totalTables() {
-      return this.appList.reduce((sum, app) => sum + (app.tableCount || 0), 0)
+      return this.filteredApps.reduce((sum, app) => sum + (app.tableCount || 0), 0)
     },
     totalRecords() {
-      return this.appList.reduce((sum, app) => sum + (app.recordCount || 0), 0)
+      return this.filteredApps.reduce((sum, app) => sum + (app.recordCount || 0), 0)
     }
   },
   methods: {
@@ -238,7 +263,7 @@ export default {
       return `curl -X POST ${baseUrl}/api/bitable/reporting/${this.currentApp.appToken}/{table_key} \\\n  -H "Authorization: Bearer ${this.currentApp.apiKey}" \\\n  -H "Content-Type: application/json" \\\n  -d '{\"meta\":{\"fields\":[{\"key\":\"title\",\"name\":\"标题\",\"ui_type\":\"text\"}]},\"list\":[{\"title\":\"测试数据\"}]}'`
     },
     copyReportUrl(app) {
-      const url = `${window.location.protocol + '//' + window.location.hostname}:8080/api/bitable/reporting/${app.appToken}/{table_key}`
+      const url = `${window.location.origin}/api/bitable/reporting/${app.appToken}/{table_key}`
       this.copyText(url)
     },
     copyText(text) {
@@ -431,26 +456,9 @@ export default {
   padding-top: 10px;
   border-top: 1px solid #f0f2f5;
 }
-.card-meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-.card-desc {
-  margin: 12px 0;
-  font-size: 13px;
-  color: #606266;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  color: #909399;
-}
+
+
+
 .card-meta {
   display: flex;
   align-items: center;
@@ -505,5 +513,9 @@ export default {
   background: #ecf5ff;
   padding: 1px 4px;
   border-radius: 3px;
+}
+.header-right {
+  display: flex;
+  align-items: center;
 }
 </style>

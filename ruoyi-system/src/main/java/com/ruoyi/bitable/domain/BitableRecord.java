@@ -28,6 +28,7 @@ public class BitableRecord
     private String filterValue;
     private String sortField;
     private String sortOrder;
+    private String sortType; // 'number' or 'text', used for ORDER BY optimization
     // 多条件筛选 [{field, operator, value}]
     private List<Map<String, String>> filters;
 
@@ -82,6 +83,9 @@ public class BitableRecord
 
     public String getSortOrder() { return sortOrder; }
     public void setSortOrder(String sortOrder) { this.sortOrder = sortOrder; }
+
+    public String getSortType() { return sortType; }
+    public void setSortType(String sortType) { this.sortType = sortType; }
 
     public List<Map<String, String>> getFilters() { return filters; }
     public void setFilters(List<Map<String, String>> filters) { this.filters = filters; }

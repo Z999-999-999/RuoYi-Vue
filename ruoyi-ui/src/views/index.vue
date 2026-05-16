@@ -85,7 +85,17 @@
             <span>更新日志</span>
           </div>
           <el-collapse accordion>
-                        <el-collapse-item title="v3.10.1 - 2026-05-15">
+            <el-collapse-item title="v3.10.2 - 2026-05-17">
+              <ol>
+                <li>上报接口异常保护：添加 try-catch 全包裹 + 参数校验 + OOM 处理</li>
+                <li>上报去重性能优化：HashMap 快速查找 + HashSet 哈希去重，避免全量加载内存</li>
+                <li>修复表格多余"发布时间"列：删除固定列，动态字段列已包含该信息</li>
+                <li>排序功能修复：数字字段按数值排序（sortType 参数 + JSON_EXTRACT +0）</li>
+                <li>字段类型自动推断增强：含"量/数/count"关键词自动识别为数字类型</li>
+                <li>版本号从 3.10.1 升级至 3.10.2</li>
+              </ol>
+            </el-collapse-item>
+            <el-collapse-item title="v3.10.1 - 2026-05-15">
               <ol>
                 <li>修复级联删除 Bug：deleteTableById 改用 selectTableByIdForDelete 直接查询软删除表</li>
                 <li>BitableTableMapper.java 语法错误修复（多余括号、@Param import、缺失方法声明）</li>
@@ -134,7 +144,7 @@ export default {
   data() {
     return {
       // 版本号
-      version: "3.10.1"
+      version: "3.10.2"
     }
   },
   methods: {

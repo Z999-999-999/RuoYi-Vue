@@ -55,19 +55,31 @@ public class BitableReportingController
             @RequestHeader(value = "Authorization", required = false) String authHeader,
             @RequestBody Map<String, Object> body)
     {
-        // 1. 验证 api_key
-        String apiKey = extractApiKey(authHeader);
-        if (apiKey == null)
+        try
         {
-            return error(401, "缺少Authorization请求头");
-        }
-        BitableApp app = appService.selectAppByToken(appToken);
-        if (app == null || !apiKey.equals(app.getApiKey()))
-        {
-            return error(403, "api_key无效或应用不存在");
-        }
+            // ==================== 参数校验（防御） ====================
+            if (appToken == null || appToken.trim().isEmpty() || tableKey == null || tableKey.trim().isEmpty())
+            {
+                return error(400, "app_token 和 table_key 不能为空");
+            }
+            if (body == null)
+            {
+                return error(400, "请求体不能为空");
+            }
 
-        // 2. 查找或自动创建数据表
+            // 1. 验证 api_key
+            String apiKey = extractApiKey(authHeader);
+            if (apiKey == null)
+            {
+                return error(401, "缺少Authorization请求头");
+            }
+            BitableApp app = appService.selectAppByToken(appToken);
+            if (app == null || !apiKey.equals(app.getApiKey()))
+            {
+                return error(403, "api_key无效或应用不存在");
+            }
+
+            // 2. 查找或自动创建数据表
         BitableTable table = tableService.selectTableByTokenAndId(appToken, tableKey);
         if (table == null)
         {
@@ -166,33 +178,50 @@ public class BitableReportingController
             List<BitableRecord> recordsToUpdate = new ArrayList<>();
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             
-            // 预加载所有已有记录（用于整行内容比对去重）
-            List<BitableRecord> allRecords = recordService.selectAllRecords(appToken, tableKey);
-            
+            // 只加载 record_id 用于快速去重（不再加载整条 fields_json，避免大表 OOM）
+            List<BitableRecord> existingRecordIds = recordService.selectAllRecords(appToken, tableKey);
+            // 构建 record_id → existingRecord 的 HashMap（用于快速去重查找）
+            java.util.Map<String, BitableRecord> recordIdMap = new java.util.HashMap<>();
+            for (BitableRecord r : existingRecordIds) {
+                if (r.getRecordId() != null && !r.getRecordId().isEmpty()) {
+                    recordIdMap.put(r.getRecordId(), r);
+                }
+            }
+            // 用 Set<String> 存储已有 fields_json 的哈希值，用于整行比对去重（限制内存占用）
+            java.util.Set<String> existingJsonHashes = new java.util.HashSet<>();
+            for (BitableRecord r : existingRecordIds) {
+                if (r.getFieldsJson() != null) {
+                    existingJsonHashes.add(String.valueOf(r.getFieldsJson().hashCode()));
+                }
+            }
+
             for (Map<String, Object> dataItem : dataList)
             {
                 // 规范化日期字段：时间戳数字 → 格式化字符串
                 normalizeDateFields(dataItem, dateFieldKeys, dateFormat);
-                
+
                 // 尝试从数据中提取唯一标识（智能去重：评论ID > 类型ID > cid > 整行比对）
                 String recordId = extractRecordId(dataItem);
                 String currentJson = toJsonString(dataItem);
-                
-                // 检查是否已存在
+
+                // 检查是否已存在：优先用 record_id 精确匹配
                 BitableRecord existingRecord = null;
                 if (recordId != null && !recordId.isEmpty())
                 {
-                    existingRecord = recordService.selectRecordByTokenTableRecordId(appToken, tableKey, recordId);
+                    existingRecord = recordIdMap.get(recordId);
                 }
-                // 无法提取唯一标识时，用整行内容比对去重
+                // 无法提取唯一标识时，用 JSON 哈希值比对去重（避免全表扫描）
                 if (existingRecord == null && (recordId == null || recordId.isEmpty()))
                 {
-                    for (BitableRecord oldRec : allRecords)
-                    {
-                        if (currentJson.equals(oldRec.getFieldsJson()))
+                    if (existingJsonHashes.contains(String.valueOf(currentJson.hashCode()))) {
+                        // 哈希命中，再精确比对（避免哈希碰撞误判）
+                        for (BitableRecord oldRec : existingRecordIds)
                         {
-                            existingRecord = oldRec;
-                            break;
+                            if (currentJson.equals(oldRec.getFieldsJson()))
+                            {
+                                existingRecord = oldRec;
+                                break;
+                            }
                         }
                     }
                 }
@@ -247,6 +276,18 @@ public class BitableReportingController
         if (updateCount > 0) msg += "，更新" + updateCount + "条";
         if (insertCount > 0 || updateCount > 0) msg += "）";
         return success(msg);
+        }
+        catch (java.lang.OutOfMemoryError oome)
+        {
+            System.err.println("[BitableReporting] 数据量过大，内存溢出: " + oome.getMessage());
+            return error(413, "数据量过大，请减少每次上报的记录数量（建议不超过5000条）");
+        }
+        catch (Exception e)
+        {
+            System.err.println("[BitableReporting] 处理数据时发生异常: " + e.getClass().getName() + ": " + e.getMessage());
+            // 不泄露堆栈，只返回友好错误
+            return error(500, "服务器处理数据时发生异常，请稍后重试");
+        }
     }
 
     /**
@@ -387,6 +428,25 @@ public class BitableReportingController
                 case "phone": return 13;
                 case "url": return 15;
                 default: return 1; // 多行文本
+            }
+        }
+        // 没有 ui_type 时，根据字段名称关键词推断类型
+        String name = (String) metaItem.get("name");
+        if (name != null)
+        {
+            String lowerName = name.toLowerCase();
+            // 数字类型关键词
+            if (lowerName.contains("数") || lowerName.contains("量") || lowerName.contains("count")
+                || lowerName.contains("amount") || lowerName.contains("total") || lowerName.contains("num")
+                || lowerName.contains("score") || lowerName.contains("rate") || lowerName.contains("ratio"))
+            {
+                return 2; // 数字
+            }
+            // 日期类型关键词
+            if (lowerName.contains("时间") || lowerName.contains("日期") || lowerName.contains("date")
+                || lowerName.contains("time") || lowerName.contains("at"))
+            {
+                return 5; // 日期
             }
         }
         return 1; // 默认多行文本

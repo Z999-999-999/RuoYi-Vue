@@ -180,7 +180,7 @@
               </div>
               <el-button slot="reference" size="mini" icon="el-icon-setting">列设置</el-button>
             </el-popover>
-            <el-button size="mini" icon="el-icon-download" @click="handleExport">导出</el-button>
+            <el-button size="mini" icon="el-icon-download" :loading="exportLoading" @click="handleExport">导出</el-button>
             <el-button size="mini" icon="el-icon-refresh" @click="loadRecords">刷新</el-button>
             <el-button v-if="selectedRows.length > 0" size="mini" type="warning" plain @click="handleBatchDelete">
               批量删除 ({{ selectedRows.length }})
@@ -234,9 +234,11 @@
             v-for="f in displayFields"
             :key="f.fieldId"
             :label="f.fieldName"
-            :min-width="colWidth(f)"
+            :min-width="colWidth(f)" :width="colWidth(f)"
             show-overflow-tooltip
             :class-name="fieldAlignClass(f)"
+            sortable="custom"
+            :prop="f.fieldId"
           >
             <template slot-scope="{ row }">
               <!-- 多选/单选类型：彩色标签 -->
@@ -265,11 +267,7 @@
               </template>
             </template>
           </el-table-column>
-          <el-table-column label="发布时间" width="160" prop="createdTime" sortable="custom">
-            <template slot-scope="{ row }">
-              <span><i class="el-icon-time" style="color:#909399;margin-right:4px" />{{ formatCreatedTime(row.createdTime) }}</span>
-            </template>
-          </el-table-column>
+
           <el-table-column label="操作" width="80" fixed="right">
             <template slot-scope="{ row }">
               <el-popconfirm title="确认删除此记录？" @confirm="handleDeleteRecord(row)">
@@ -335,7 +333,6 @@ export default {
       pageSize: 20,
       // 筛选条件
       searchKeyword: '',
-      dateRange: null,
       filterField: '',
       filterValue: '',
       // 多条件筛选
@@ -347,10 +344,12 @@ export default {
       // 排序
       sortField: '',
       sortOrder: '',
+      sortType: '', // 'number' | 'text' | ''
       // 批量选择
       selectedRows: [],
       // 最后刷新时间
       lastRefreshTime: '',
+      exportLoading: false,
       // 新建数据表
       tableDialogVisible: false,
       tableSubmitLoading: false,
@@ -397,6 +396,7 @@ export default {
           this.columnVisible = {}
           this.sortField = ''
           this.sortOrder = ''
+          this.sortType = ''
           this.loadOverview()
         }
       },
@@ -459,17 +459,12 @@ export default {
       this.columnVisible = {}
       this.sortField = ''
       this.sortOrder = ''
+      this.sortType = ''
       this.loadOverview()
     }
     next()
   },
   methods: {
-
-    // 获取字段类型
-    getFieldType(fieldId) {
-      const field = this.fields.find(f => f.fieldId === fieldId)
-      return field ? field.fieldType : null
-    },
     loadOverview() {
       this.skeletonLoading = true
       getOverview(this.appToken).then(res => {
@@ -523,12 +518,11 @@ export default {
         pageNum: this.pageNum,
         pageSize: this.pageSize,
         keyword: this.searchKeyword || undefined,
-        startDate: this.dateRange ? this.dateRange[0] : undefined,
-        endDate: this.dateRange ? this.dateRange[1] : undefined,
         filterField: this.filterField || undefined,
         filterValue: this.filterValue || undefined,
         sortField: this.sortField || undefined,
         sortOrder: this.sortOrder || undefined,
+        sortType: this.sortType || undefined,
         filters: this.buildFiltersParam()
       }
       listRecord(this.appToken, this.activeTableId, params).then(res => {
@@ -588,7 +582,6 @@ export default {
     },
     resetFilters() {
       this.searchKeyword = ''
-      this.dateRange = null
       this.filterField = ''
       this.filterValue = ''
       this.filterRows = []
@@ -598,7 +591,6 @@ export default {
     clearFiltersOnTableChange() {
       this.filterRows = []
       this.searchKeyword = ''
-      this.dateRange = null
       this.filterField = ''
       this.filterValue = ''
     },
@@ -752,12 +744,14 @@ export default {
       clearRecords(this.appToken, this.activeTableId).then(() => {
         this.$message.success('已清空')
         this.loadRecords()
+        this.countRecordRefresh()
       })
     },
     handleDeleteRecord(row) {
       deleteRecord(row.id).then(() => {
         this.$message.success('已删除')
         this.loadRecords()
+        this.countRecordRefresh()
       })
     },
     onSortChange({ prop, order }) {
@@ -765,9 +759,13 @@ export default {
       if (!order) {
         this.sortField = ''
         this.sortOrder = ''
+        this.sortType = ''
       } else {
         this.sortField = prop
         this.sortOrder = order === 'ascending' ? 'asc' : 'desc'
+        // 根据字段类型决定排序方式：数字字段用数值排序，文本字段用字典序
+        const field = this.fields.find(f => f.fieldId === prop)
+        this.sortType = (field && field.type === 2) ? 'number' : 'text'
       }
       this.pageNum = 1
       this.loadRecords()
@@ -787,13 +785,21 @@ export default {
           this.$message.success(`已删除 ${ids.length} 条记录`)
           this.selectedRows = []
           this.loadRecords()
+          // 刷新 tab badge 记录数
+          this.countRecordRefresh()
         })
       }).catch(() => {})
+    },
+    // 刷新当前表记录数（tab badge）
+    countRecordRefresh() {
+      countRecord(this.appToken, this.activeTableId).then(res => {
+        this.$set(this.recordCounts, this.activeTableId, res.data || 0)
+      })
     },
     // 数据导出（处理 Blob 响应）
     handleExport() {
       if (!this.activeTableId) return
-      this.$message.info('正在导出...')
+      this.exportLoading = true
       exportRecord(this.appToken, this.activeTableId).then(res => {
         // res 在 blob 模式下是 Blob 对象
         const blob = res
@@ -806,7 +812,7 @@ export default {
         this.$message.success('导出成功')
       }).catch(err => {
         this.$message.error('导出失败：' + (err.message || ''))
-      })
+      }).finally(() => { this.exportLoading = false })
     }
   }
 }
